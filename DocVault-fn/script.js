@@ -1,328 +1,328 @@
 'use strict';
 
-/*
-  NOTE:
-  - Do NOT embed secret keys (Pinata JWT) in client-side code for production.
-  - Replace client uploads with a server-side endpoint that signs/forwards requests,
-    or set PINATA_JWT here only for local testing (not recommended).
-*/
+/* ------------------ CONFIG ------------------ */
+const SUPABASE_URL = "https://imqmwrvvesihyxnmxkjt.supabase.co";
+const SUPABASE_ANON_KEY ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImltcW13cnZ2ZXNpaHl4bm14a2p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNDgwNTMsImV4cCI6MjA3ODYyNDA1M30.UqGdf4TH2BE4vpuultt-ZLgJnMyrxx7IOYwvL0__gng";
 
-const PINATA_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJlNmU5ZDY3Mi05MjhiLTRlYWQtOTViMi1hYTRmNGIyODhjNjciLCJlbWFpbCI6InVwYWRoeWF5eWFzaDgyOEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiOGJjMzNjNDIyNmRlMTk0NGYzZWQiLCJzY29wZWRLZXlTZWNyZXQiOiI2MmMwMDFmMGMzM2QzMzExYmM4YTY0MjYxNTVjNzA2MTU2Mzg3ZjIzODBhMjM0ZWRmMDU3MDlkNThhNTg4NjBjIiwiZXhwIjoxNzk0NTYzOTY0fQ.TND-ia2X8jI33dibYp68R2Zh64_orOPthVnqtl0qt5w';
+const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Document storage object - stores file data for each document (kept for mapping)
-const documentStorage = {
-    1: { files: [] }, // Aadhaar
-    2: { files: [] }, // Pan
-    3: { files: [] }, // Property
-    4: { files: [] }  // Certificates
-};
+const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJlNmU5ZDY3Mi05MjhiLTRlYWQtOTViMi1hYTRmNGIyODhjNjciLCJlbWFpbCI6InVwYWRoeWF5eWFzaDgyOEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiOGJjMzNjNDIyNmRlMTk0NGYzZWQiLCJzY29wZWRLZXlTZWNyZXQiOiI2MmMwMDFmMGMzM2QzMzExYmM4YTY0MjYxNTVjNzA2MTU2Mzg3ZjIzODBhMjM0ZWRmMDU3MDlkNThhNTg4NjBjIiwiZXhwIjoxNzk0NTYzOTY0fQ.TND-ia2X8jI33dibYp68R2Zh64_orOPthVnqtl0qt5w";
 
-// centralized list of all uploaded files
-const generalUploads = [];
-
-// Currently selected document ID for upload
+/* --------------------- STATE -------------------- */
 let currentDocId = null;
+const sessionCache = {};
 
-document.addEventListener('DOMContentLoaded', () => {
-    const fileInput = document.getElementById('file-input');
-    const loginBtn = document.querySelector('.btn-login');
-    const signupBtn = document.querySelector('.btn-signup');
-    const getStartedBtn = document.querySelector('.btn-primary');
+/* --------------------- HELPERS -------------------- */
+async function getCurrentUser() {
+    const { data } = await supa.auth.getUser();
+    return data?.user || null;
+}
+
+function ensureLoggedInPrompt() {
+    openAuthPanel("login");
+}
+
+/* -------------------- DOM READY -------------------- */
+document.addEventListener("DOMContentLoaded", async () => {
+    const fileInput = document.getElementById("file-input");
+    const getStartedBtn = document.querySelector(".btn-primary");
 
     if (fileInput) {
-        fileInput.addEventListener('change', (e) => {
+        fileInput.addEventListener("change", (e) => {
             handleFiles(e.target.files);
-            fileInput.value = '';
+            fileInput.value = "";
         });
     }
 
-    if (loginBtn) loginBtn.addEventListener('click', () => alert('Login functionality coming soon!'));
-    if (signupBtn) signupBtn.addEventListener('click', () => alert('Sign up functionality coming soon!'));
-    if (getStartedBtn) getStartedBtn.addEventListener('click', () => {
-        const uploadSection = document.querySelector('.documents');
-        if (uploadSection) uploadSection.scrollIntoView({ behavior: 'smooth' });
-    });
-
-    // click handling: section click => open file picker for that section
-    document.addEventListener('click', (e) => {
-        // card-level view/delete from central list remain handled separately
-        const card = e.target.closest('.document-card[data-doc-id]');
-        if (card) {
-            const docId = card.getAttribute('data-doc-id');
-            // if file exists, ask to replace
-            if (documentStorage[docId].files.length > 0) {
-                if (!confirm('This section already has an uploaded file. Replace it?')) {
-                    return;
-                }
-            }
-            currentDocId = docId;
-            const fileInput = document.getElementById('file-input');
-            if (fileInput) fileInput.click();
-        }
-
-        const viewBtn = e.target.closest('.view-btn');
-        if (viewBtn) {
-            const cardView = viewBtn.closest('.document-card');
-            if (cardView) {
-                const docId = cardView.getAttribute('data-doc-id');
-                viewDocument(docId);
-            }
-        }
-
-        const deleteBtn = e.target.closest('.btn-delete');
-        if (deleteBtn) {
-            const cardDelete = deleteBtn.closest('.document-card');
-            if (cardDelete) {
-                const docId = cardDelete.getAttribute('data-doc-id');
-                deleteDocument(docId);
-            }
-        }
-    });
-
-    // initialize UI
-    document.querySelectorAll('.document-card[data-doc-id]').forEach(card => {
-        const docId = card.getAttribute('data-doc-id');
-        updateDocumentCard(docId);
-    });
-    updateUploadedDocumentsList();
-});
-
-/* Handle file selection for a section */
-function handleFiles(files) {
-    if (!files || files.length === 0) return;
-
-    if (!currentDocId) {
-        alert('Please click a document section (Aadhaar / Pan / ...) to upload.');
-        return;
+    if (getStartedBtn) {
+        getStartedBtn.addEventListener("click", () => {
+            document.querySelector(".documents")?.scrollIntoView({ behavior: "smooth" });
+        });
     }
 
-    const file = files[0];
-    uploadLocalFile(file, currentDocId);
+    // Card click
+    document.addEventListener("click", async (e) => {
+        const card = e.target.closest(".document-card[data-doc-id]");
+        if (!card) return;
+
+        const docId = card.getAttribute("data-doc-id");
+        const user = await getCurrentUser();
+        if (!user) return ensureLoggedInPrompt();
+
+        if (sessionCache[docId]) {
+            if (!confirm("Replace existing file?")) return;
+        }
+
+        currentDocId = docId;
+        document.getElementById("file-input").click();
+    });
+
+    // Load initial UI
+    for (const card of document.querySelectorAll(".document-card[data-doc-id]")) {
+        await updateDocumentCard(card.getAttribute("data-doc-id"));
+    }
+
+    await updateUploadedDocumentsList();
+    await refreshAuthUI();
+});
+
+/* ---------------------- AUTH ---------------------- */
+async function signupUser(email, password) {
+    const { error } = await supa.auth.signUp({ email, password });
+    if (error) return alert(error.message);
+
+    await refreshAuthUI();
+    await updateUploadedDocumentsList();
+}
+
+async function loginUser(email, password) {
+    const { error } = await supa.auth.signInWithPassword({ email, password });
+    if (error) return alert(error.message);
+
+    await refreshAuthUI();
+    await updateUploadedDocumentsList();
+}
+
+async function logoutUser() {
+    await supa.auth.signOut();
+    for (const key in sessionCache) delete sessionCache[key];
+    await refreshAuthUI();
+    await updateUploadedDocumentsList();
+}
+
+async function refreshAuthUI() {
+    const loginBtn = document.querySelector(".btn-login");
+    const signupBtn = document.querySelector(".btn-signup");
+    const user = await getCurrentUser();
+
+    if (user) {
+        loginBtn.textContent = "Welcome";
+        loginBtn.disabled = true;
+
+        signupBtn.textContent = "Logout";
+        signupBtn.onclick = logoutUser;
+        signupBtn.style.backgroundColor = "#dc3545";
+    } else {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Login";
+        loginBtn.onclick = () => openAuthPanel("login");
+
+        signupBtn.textContent = "Sign Up";
+        signupBtn.onclick = () => openAuthPanel("signup");
+        signupBtn.style.backgroundColor = "";
+    }
+}
+
+/* -------------------- FILE HANDLING -------------------- */
+
+function handleFiles(files) {
+    if (!files.length) return;
+    if (!currentDocId) return alert("Select a section first.");
+    uploadToIPFS(files[0], currentDocId);
     currentDocId = null;
 }
 
-/* Local upload (no external upload). Store file under section and central list. */
-function uploadLocalFile(file, docId) {
-    // revoke previous objectURL if replacing
-    const prev = (documentStorage[docId].files[0] || null);
-    if (prev && prev.objectUrl) {
-        URL.revokeObjectURL(prev.objectUrl);
-    }
+async function uploadToIPFS(file, docId) {
+    const user = await getCurrentUser();
+    if (!user) return ensureLoggedInPrompt();
 
-    const objectUrl = URL.createObjectURL(file);
-    const fileObj = {
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        uploadDate: new Date().toLocaleString(),
-        objectUrl,
-        section: docId,
-        id: Date.now() + Math.random().toString(36).slice(2,8)
-    };
+    const sectionId = parseInt(docId);
 
-    // replace section file (keep single file per section)
-    documentStorage[docId].files = [fileObj];
+    // Upload to Pinata
+    const form = new FormData();
+    form.append("file", file);
+    form.append("pinataMetadata",
+        JSON.stringify({ name: file.name, keyvalues: { section: sectionId.toString() } })
+    );
 
-    // remove any previous central entry for this section (so central list shows latest)
-    for (let i = generalUploads.length - 1; i >= 0; i--) {
-        if (generalUploads[i].section === docId) generalUploads.splice(i, 1);
-    }
-    generalUploads.push(fileObj);
-
-    updateDocumentCard(docId);
-    updateUploadedDocumentsList();
-}
-
-/* Update document card UI - show green tick when file exists */
-function updateDocumentCard(docId) {
-    const card = document.querySelector(`[data-doc-id="${docId}"]`);
-    if (!card) return;
-
-    const statusText = card.querySelector('.doc-status');
-
-    const filesCount = documentStorage[docId].files.length;
-    let tick = card.querySelector('.uploaded-tick');
-
-    if (filesCount > 0) {
-        const doc = documentStorage[docId].files[0];
-        statusText.textContent = ` ${doc.name}`;
-        statusText.style.color = '#333';
-
-        if (!tick) {
-            tick = document.createElement('div');
-            tick.className = 'uploaded-tick';
-            tick.style.display = 'flex';
-            tick.style.alignItems = 'center';
-            tick.style.gap = '8px';
-            tick.style.marginTop = '8px';
-            tick.style.color = '#28a745';
-            tick.style.fontSize = '0.95em';
-            tick.innerHTML = `
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 6L9 17l-5-5" stroke="#28a745" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span>Stored under this section</span>
-            `;
-            statusText.insertAdjacentElement('afterend', tick);
-        } else {
-            tick.style.display = 'flex';
-        }
-        card.style.cursor = 'pointer';
-    } else {
-        statusText.textContent = 'No file uploaded';
-        statusText.style.color = '#999';
-        if (tick) tick.remove();
-        card.style.cursor = 'pointer';
-    }
-}
-
-/* Centralized uploaded documents list update */
-function updateUploadedDocumentsList() {
-    const container = document.getElementById('uploaded-documents-list');
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    if (generalUploads.length === 0) {
-        container.innerHTML = `<p class="empty-note" style="color:#666;">No uploaded documents yet.</p>`;
-        return;
-    }
-
-    const list = document.createElement('div');
-    list.style.display = 'flex';
-    list.style.flexDirection = 'column';
-    list.style.gap = '8px';
-
-    const docNames = { 1: 'Aadhaar Card', 2: 'Pan Card', 3: 'Property Deed', 4: 'Certificates' };
-
-    // show newest first
-    generalUploads.slice().reverse().forEach(item => {
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.justifyContent = 'space-between';
-        row.style.alignItems = 'center';
-        row.style.padding = '10px';
-        row.style.border = '1px solid #eee';
-        row.style.borderRadius = '6px';
-        row.style.background = '#fff';
-
-        const info = document.createElement('div');
-        info.innerHTML = `<div style="font-weight:600">${escapeHtml(item.name)}</div>
-                          <div style="font-size:0.85em;color:#666">${docNames[item.section] || 'General'} • ${item.uploadDate}</div>`;
-
-        const actions = document.createElement('div');
-        actions.style.display = 'flex';
-        actions.style.gap = '6px';
-
-        const view = document.createElement('a');
-        view.textContent = 'View';
-        view.href = item.objectUrl;
-        view.target = '_blank';
-        view.rel = 'noopener';
-        view.style.padding = '6px 10px';
-        view.style.background = '#007bff';
-        view.style.color = '#fff';
-        view.style.borderRadius = '4px';
-        view.style.textDecoration = 'none';
-
-        const download = document.createElement('a');
-        download.textContent = 'Download';
-        download.href = item.objectUrl;
-        download.download = item.name;
-        download.style.padding = '6px 10px';
-        download.style.background = '#28a745';
-        download.style.color = '#fff';
-        download.style.borderRadius = '4px';
-        download.style.textDecoration = 'none';
-
-        const del = document.createElement('button');
-        del.textContent = 'Delete';
-        del.style.padding = '6px 10px';
-        del.style.background = '#dc3545';
-        del.style.color = '#fff';
-        del.style.border = 'none';
-        del.style.borderRadius = '4px';
-        del.style.cursor = 'pointer';
-
-        del.addEventListener('click', () => {
-            if (!confirm(`Delete "${item.name}"?`)) return;
-            deleteUploaded(item.id, item.section);
-        });
-
-        actions.appendChild(view);
-        actions.appendChild(download);
-        actions.appendChild(del);
-
-        row.appendChild(info);
-        row.appendChild(actions);
-        list.appendChild(row);
+    const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${PINATA_JWT}` },
+        body: form
     });
 
-    container.appendChild(list);
+    if (!res.ok) return alert("IPFS upload failed.");
+
+    const data = await res.json();
+    const cid = data.IpfsHash;
+    const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
+
+    // Save to Supabase
+    const { data: row, error } = await supa
+        .from("documents")
+        .insert([{ user_id: user.id, section_id: sectionId, name: file.name, cid, ipfs_url: url }])
+        .select();
+
+    if (error) return alert(error.message);
+
+    sessionCache[docId] = row[0];
+
+    await updateDocumentCard(docId);
+    await updateUploadedDocumentsList();
 }
 
-/* Delete uploaded item from central list (and from its section mapping if any) */
-function deleteUploaded(id, section = null) {
-    for (let i = generalUploads.length - 1; i >= 0; i--) {
-        if (generalUploads[i].id === id) {
-            // revoke object URL
-            if (generalUploads[i].objectUrl) URL.revokeObjectURL(generalUploads[i].objectUrl);
-            generalUploads.splice(i, 1);
-        }
-    }
+/* -------------------- UI UPDATES -------------------- */
 
-    if (section) {
-        const files = documentStorage[section].files;
-        for (let i = files.length - 1; i >= 0; i--) {
-            if (files[i].id === id) {
-                if (files[i].objectUrl) URL.revokeObjectURL(files[i].objectUrl);
-                files.splice(i, 1);
-            }
-        }
-        updateDocumentCard(section);
-    }
+async function updateDocumentCard(docId) {
+    const card = document.querySelector(`[data-doc-id="${docId}"]`);
+    const label = card.querySelector(".doc-status");
 
-    updateUploadedDocumentsList();
-}
-
-/* Delete mapping for a section (clears mapping and central list entries for that section) */
-function deleteDocument(docId) {
-    if (!confirm('Are you sure you want to delete documents for this section?')) return;
-
-    // remove central entries for this section
-    for (let i = generalUploads.length - 1; i >= 0; i--) {
-        if (generalUploads[i].section === docId) {
-            if (generalUploads[i].objectUrl) URL.revokeObjectURL(generalUploads[i].objectUrl);
-            generalUploads.splice(i, 1);
-        }
-    }
-    // clear section storage
-    const files = documentStorage[docId].files;
-    for (let i = files.length - 1; i >= 0; i--) {
-        if (files[i].objectUrl) URL.revokeObjectURL(files[i].objectUrl);
-        files.splice(i, 1);
-    }
-    updateDocumentCard(docId);
-    updateUploadedDocumentsList();
-}
-
-/* View document from section (opens first file for the section) */
-function viewDocument(docId) {
-    const files = documentStorage[docId].files;
-    if (!files || files.length === 0) {
-        alert('No files in this folder');
+    const user = await getCurrentUser();
+    if (!user) {
+        label.textContent = "Login required";
+        label.style.color = "#999";
         return;
     }
-    const doc = files[0];
-    window.open(doc.objectUrl, '_blank');
+
+    let doc = sessionCache[docId];
+
+    if (!doc) {
+        const { data } = await supa
+            .from("documents")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("section_id", parseInt(docId))
+            .order("uploaded_at", { ascending: false })
+            .limit(1);
+
+        if (data?.length) {
+            doc = data[0];
+            sessionCache[docId] = doc;
+        }
+    }
+
+    label.textContent = doc ? `${doc.name} (IPFS)` : "No file uploaded";
 }
 
-/* Basic HTML escaping */
-function escapeHtml(str) {
-    return String(str || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+async function updateUploadedDocumentsList() {
+    const container = document.getElementById("uploaded-documents-list");
+    const user = await getCurrentUser();
+
+    if (!user) {
+        container.innerHTML = "<p>Login to see your documents.</p>";
+        return;
+    }
+
+    const { data, error } = await supa
+        .from("documents")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("uploaded_at", { ascending: false });
+
+    if (error) {
+        container.innerHTML = "<p>Error loading documents</p>";
+        return;
+    }
+
+    if (!data.length) {
+        container.innerHTML = "<p>No documents uploaded yet.</p>";
+        return;
+    }
+
+    container.innerHTML = "";
+    for (const item of data) {
+        const row = document.createElement("div");
+        row.classList.add("doc-row");
+
+        row.innerHTML = `
+            <div class="doc-info">${escapeHtml(item.name)}</div>
+            <div class="doc-actions">
+                <a class="view-btn" href="${item.ipfs_url}" target="_blank">View</a>
+                <a class="download-btn" href="${item.ipfs_url}" download="${item.name}">Download</a>
+                <button class="delete-btn" onclick="deleteDocumentDB('${item.id}','${item.section_id}')">Delete</button>
+            </div>
+        `;
+        container.appendChild(row);
+    }
+}
+
+/* -------------------- DELETE -------------------- */
+
+async function deleteDocumentDB(id, docId) {
+    await supa.from("documents").delete().eq("id", id);
+    delete sessionCache[docId];
+
+    await updateDocumentCard(docId);
+    await updateUploadedDocumentsList();
+}
+
+/* -------------------- AUTH MODAL -------------------- */
+
+const authOverlay = document.getElementById("auth-overlay");
+const authPanel = document.getElementById("auth-panel");
+const authTitle = document.getElementById("auth-title");
+const authForm = document.getElementById("auth-form");
+const authEmail = document.getElementById("auth-email");
+const authPassword = document.getElementById("auth-password");
+const authPasswordConfirm = document.getElementById("auth-password-confirm");
+const confirmWrapper = document.getElementById("confirm-wrapper");
+const authClose = document.getElementById("auth-close");
+
+let authMode = "login";
+
+function openAuthPanel(mode) {
+    authMode = mode;
+
+    if (mode === "login") {
+        authTitle.textContent = "Login";
+        confirmWrapper.style.display = "none";
+        document.getElementById("auth-switch").innerHTML =
+            `Don't have an account? <span id="switch-to-signup">Sign Up</span>`;
+    } else {
+        authTitle.textContent = "Sign Up";
+        confirmWrapper.style.display = "block";
+        document.getElementById("auth-switch").innerHTML =
+            `Already have an account? <span id="switch-to-login">Login</span>`;
+    }
+
+    authOverlay.classList.add("show");
+    authPanel.classList.add("show");
+
+    setTimeout(() => {
+        document.getElementById("switch-to-signup")?.addEventListener("click", () => openAuthPanel("signup"));
+        document.getElementById("switch-to-login")?.addEventListener("click", () => openAuthPanel("login"));
+    }, 10);
+}
+
+function closeAuthPanel() {
+    authOverlay.classList.remove("show");
+    authPanel.classList.remove("show");
+}
+
+authClose.addEventListener("click", closeAuthPanel);
+authOverlay.addEventListener("click", closeAuthPanel);
+
+document.querySelector(".btn-login").onclick = () => openAuthPanel("login");
+document.querySelector(".btn-signup").onclick = () => openAuthPanel("signup");
+
+authForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = authEmail.value.trim();
+    const password = authPassword.value.trim();
+
+    if (!email.includes("@") || !email.includes(".")) {
+        alert("Enter a valid email");
+        return;
+    }
+
+    if (authMode === "signup") {
+        const confirmPass = authPasswordConfirm.value.trim();
+        if (password !== confirmPass) {
+            alert("Passwords do not match");
+            return;
+        }
+        await signupUser(email, password);
+    } else {
+        await loginUser(email, password);
+    }
+
+    closeAuthPanel();
+});
+
+/* -------------------- UTILS -------------------- */
+function escapeHtml(str = "") {
+    return String(str)
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
 }
