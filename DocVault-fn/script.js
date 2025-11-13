@@ -324,63 +324,47 @@ async function updateDocumentCard(docId) {
     label.textContent = doc ? `${doc.name} (IPFS)` : "No file uploaded";
 }
 
-// ...existing code...
-
 async function updateUploadedDocumentsList() {
+    const container = document.getElementById("uploaded-documents-list");
     const user = await getCurrentUser();
-    if (!user) return;
 
-    const list = document.getElementById("uploaded-documents-list");
-    const { data: docs, error } = await supa
-        .from("documents")
-        .select("*")
-        .eq("user_id", user.id);
-
-    if (error || !docs?.length) {
-        list.innerHTML = "<p>No documents uploaded yet.</p>";
+    if (!user) {
+        container.innerHTML = "<p>Login to see your documents.</p>";
         return;
     }
 
-    list.innerHTML = docs.map(doc => `
-        <div>
-            <div>
-                <strong>${doc.name}</strong>
-                <p>CID: ${doc.cid}</p>
+    const { data, error } = await supa
+        .from("documents")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("uploaded_at", { ascending: false });
+
+    if (error) {
+        container.innerHTML = "<p>Error loading documents</p>";
+        return;
+    }
+
+    if (!data.length) {
+        container.innerHTML = "<p>No documents uploaded yet.</p>";
+        return;
+    }
+
+    container.innerHTML = "";
+    for (const item of data) {
+        const row = document.createElement("div");
+        row.classList.add("doc-row");
+
+        row.innerHTML = `
+            <div class="doc-info">${escapeHtml(item.name)}</div>
+            <div class="doc-actions">
+                <a class="view-btn" href="${item.ipfs_url}" target="_blank">View</a>
+                <a class="download-btn" href="${item.ipfs_url}" download="${item.name}">Download</a>
+                <button class="delete-btn" onclick="deleteDocumentDB('${item.id}','${item.section_id}')">Delete</button>
             </div>
-            <div class="document-actions">
-                <button class="btn-view" onclick="viewDocument('${doc.id}', '${doc.ipfs_url}')">View</button>
-                <button class="btn-download" onclick="downloadDocument('${doc.name}', '${doc.ipfs_url}')">Download</button>
-                <button class="btn-delete" onclick="deleteDocument('${doc.id}')">Delete</button>
-            </div>
-        </div>
-    `).join("");
-}
-
-function viewDocument(docId, ipfsUrl) {
-    window.open(ipfsUrl, '_blank');
-}
-
-function downloadDocument(filename, ipfsUrl) {
-    const a = document.createElement('a');
-    a.href = ipfsUrl;
-    a.download = filename;
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
-
-async function deleteDocument(docId) {
-    if (!confirm("Delete this document?")) return;
-    const { error } = await supa.from("documents").delete().eq("id", docId);
-    if (error) alert("Error: " + error.message);
-    else {
-        alert("✅ Deleted");
-        await updateUploadedDocumentsList();
+        `;
+        container.appendChild(row);
     }
 }
-
-// ...existing code...
 
 /* -------------------- DELETE -------------------- */
 
@@ -472,3 +456,4 @@ function escapeHtml(str = "") {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 }
+
