@@ -67,7 +67,7 @@ const SUPABASE_ANON_KEY ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJlNmU5ZDY3Mi05MjhiLTRlYWQtOTViMi1hYTRmNGIyODhjNjciLCJlbWFpbCI6InVwYWRoeWF5eWFzaDgyOEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiOGJjMzNjNDIyNmRlMTk0NGYzZWQiLCJzY29wZWRLZXlTZWNyZXQiOiI2MmMwMDFmMGMzM2QzMzExYmM4YTY0MjYxNTVjNzA2MTU2Mzg3ZjIzODBhMjM0ZWRmMDU3MDlkNThhNTg4NjBjIiwiZXhwIjoxNzk0NTYzOTY0fQ.TND-ia2X8jI33dibYp68R2Zh64_orOPthVnqtl0qt5w";
+const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJlNmU5ZDY3Mi05MjhiLTRlYWQtOTViMi1hYTRmNGIyODhjNjciLCJlbWFpbCI6InVwYWRoeWF5eWFzaDgyOEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkEXIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiOGJjMzNjNDIyNmRlMTk0NGYzZWQiLCJzY29wZWRLZXlTZWNyZXQiOiI2MmMwMDFmMGMzM2QzMzExYmM4YTY0MjYxNTVjNzA2MTU2Mzg3ZjIzODBhMjM0ZWRmMDU3MDlkNThhNTg4NjBjIiwiZXhwIjoxNzk0NTYzOTY0fQ.TND-ia2X8jI33dibYp68R2Zh64_orOPthVnqtl0qt5w";
 
 /* --------------------- STATE -------------------- */
 let currentDocId = null;
@@ -85,9 +85,117 @@ function ensureLoggedInPrompt() {
 
 /* -------------------- DOM READY -------------------- */
 document.addEventListener("DOMContentLoaded", async () => {
+    // Initialize all elements
+    const getStartedBtn = document.getElementById("get-started-btn");
+    const heroSection = document.getElementById("hero-section");
+    const authOverlay = document.getElementById("auth-overlay");
+    const authPanel = document.getElementById("auth-panel");
+    const authTitle = document.getElementById("auth-title");
+    const authClose = document.getElementById("auth-close");
+    const authForm = document.getElementById("auth-form");
     const fileInput = document.getElementById("file-input");
-    const getStartedBtn = document.querySelector(".btn-primary");
+    const addFileCard = document.getElementById("add-file-card");
 
+    // ========== GET STARTED BUTTON ==========
+    if (getStartedBtn) {
+        getStartedBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const user = await getCurrentUser();
+            
+            if (!user) {
+                // Show login panel
+                authOverlay.classList.remove("hidden");
+                authOverlay.classList.add("show");
+                authPanel.classList.remove("hidden");
+                authPanel.classList.add("show");
+                authTitle.textContent = "Login";
+                document.getElementById("confirm-wrapper").style.display = "none";
+                
+                // Update auth switch text
+                document.getElementById("auth-switch").innerHTML =
+                    `Don't have an account? <span id="switch-to-signup" style="cursor: pointer; color: #3B82F6; font-weight: 600;">Sign Up</span>`;
+                
+                // Add listener for switch
+                document.getElementById("switch-to-signup")?.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    openAuthPanel("signup");
+                });
+            } else {
+                // User already logged in - lift curtain
+                heroSection.classList.add("lifted");
+                setTimeout(() => {
+                    document.getElementById("documents").scrollIntoView({ behavior: "smooth" });
+                }, 600);
+            }
+        });
+    }
+
+    // ========== AUTH CLOSE BUTTON ==========
+    if (authClose) {
+        authClose.addEventListener("click", () => {
+            authOverlay.classList.remove("show");
+            authPanel.classList.remove("show");
+            setTimeout(() => {
+                authOverlay.classList.add("hidden");
+                authPanel.classList.add("hidden");
+            }, 300);
+        });
+    }
+
+    // ========== AUTH FORM SUBMISSION ==========
+    if (authForm) {
+        authForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email = document.getElementById("auth-email").value.trim();
+            const password = document.getElementById("auth-password").value.trim();
+            const isSignup = authTitle.textContent === "Sign Up";
+
+            if (!email.includes("@")) {
+                alert("Enter a valid email");
+                return;
+            }
+
+            if (isSignup) {
+                const passwordConfirm = document.getElementById("auth-password-confirm").value.trim();
+                if (password !== passwordConfirm) {
+                    alert("Passwords do not match!");
+                    return;
+                }
+                await signupUser(email, password);
+            } else {
+                await loginUser(email, password);
+            }
+
+            // Clear form
+            authForm.reset();
+
+            // Close panel and lift curtain
+            authOverlay.classList.remove("show");
+            authPanel.classList.remove("show");
+            setTimeout(() => {
+                authOverlay.classList.add("hidden");
+                authPanel.classList.add("hidden");
+                heroSection.classList.add("lifted");
+                setTimeout(() => {
+                    document.getElementById("documents").scrollIntoView({ behavior: "smooth" });
+                }, 600);
+            }, 300);
+        });
+    }
+
+    // ========== ADD FILE CARD ==========
+    if (addFileCard) {
+        addFileCard.addEventListener("click", async () => {
+            const user = await getCurrentUser();
+            if (!user) {
+                ensureLoggedInPrompt();
+            } else {
+                fileInput.click();
+            }
+        });
+    }
+
+    // ========== FILE INPUT ==========
     if (fileInput) {
         fileInput.addEventListener("change", (e) => {
             handleFiles(e.target.files);
@@ -95,13 +203,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    if (getStartedBtn) {
-        getStartedBtn.addEventListener("click", () => {
-            document.querySelector(".documents")?.scrollIntoView({ behavior: "smooth" });
-        });
-    }
-
-    // Card click
+    // ========== DOCUMENT CARD CLICK ==========
     document.addEventListener("click", async (e) => {
         const card = e.target.closest(".document-card[data-doc-id]");
         if (!card) return;
@@ -115,10 +217,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         currentDocId = docId;
-        document.getElementById("file-input").click();
+        fileInput.click();
     });
 
-    // Load initial UI
+    // ========== LOAD INITIAL UI ==========
     for (const card of document.querySelectorAll(".document-card[data-doc-id]")) {
         await updateDocumentCard(card.getAttribute("data-doc-id"));
     }
@@ -479,4 +581,225 @@ function escapeHtml(str = "") {
     return String(str)
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
+}
+
+/* -------------------- GUIDED FLOW -------------------- */
+function liftCurtainAndGuide() {
+    const heroSection = document.getElementById("hero-section");
+    const header = document.querySelector(".header");
+    
+    // Lift the curtain
+    heroSection.classList.add("lifted");
+    header.style.display = "block";
+    
+    // Show guided tour
+    setTimeout(() => {
+        showGuidedTour();
+    }, 600);
+}
+
+function showGuidedTour() {
+    // Create tour overlay
+    const tourOverlay = document.createElement("div");
+    tourOverlay.id = "tour-overlay";
+    tourOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.7);
+        z-index: 900;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    `;
+
+    const tourBox = document.createElement("div");
+    tourBox.style.cssText = `
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        max-width: 500px;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.5s ease-out;
+    `;
+
+    tourBox.innerHTML = `
+        <h2 style="color: #0F172A; margin-bottom: 20px; font-size: 28px;">Welcome to DocVault! 🎉</h2>
+        <p style="color: #666; margin-bottom: 30px; line-height: 1.8;">
+            Let's take a quick tour of your secure document storage.
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button id="tour-home" style="
+                background-color: #3B82F6;
+                color: white;
+                border: none;
+                padding: 12px 30px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+                transition: all 0.3s ease;
+            ">Start Tour</button>
+            <button id="tour-skip" style="
+                background-color: #E2E8F0;
+                color: #333;
+                border: none;
+                padding: 12px 30px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+                transition: all 0.3s ease;
+            ">Skip</button>
+        </div>
+    `;
+
+    tourOverlay.appendChild(tourBox);
+    document.body.appendChild(tourOverlay);
+
+    document.getElementById("tour-home").addEventListener("click", () => {
+        tourOverlay.remove();
+        guideTourStep(1);
+    });
+
+    document.getElementById("tour-skip").addEventListener("click", () => {
+        tourOverlay.remove();
+    });
+}
+
+function guideTourStep(step) {
+    const tourOverlay = document.createElement("div");
+    tourOverlay.id = "step-overlay";
+    tourOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.7);
+        z-index: 900;
+        pointer-events: none;
+    `;
+    document.body.appendChild(tourOverlay);
+
+    const steps = [
+        {
+            title: "📍 You're Home!",
+            description: "This is your dashboard where you'll manage all your documents.",
+            target: "#documents",
+            nextText: "Go to Documents →"
+        },
+        {
+            title: "📂 Your Documents",
+            description: "Upload and organize your important documents here. Each section is for a specific document type.",
+            target: "#documents h2",
+            nextText: "Learn More →"
+        },
+        {
+            title: "ℹ️ About DocVault",
+            description: "Discover more about our mission and how we protect your documents securely.",
+            target: "#about",
+            nextText: "View About ↓"
+        },
+        {
+            title: "✅ All Set!",
+            description: "You're ready to start uploading and managing your documents securely.",
+            target: null,
+            nextText: "Get Started"
+        }
+    ];
+
+    if (step > steps.length) {
+        tourOverlay.remove();
+        return;
+    }
+
+    const currentStep = steps[step - 1];
+    const targetElement = currentStep.target ? document.querySelector(currentStep.target) : null;
+
+    const tourBox = document.createElement("div");
+    tourBox.style.cssText = `
+        position: fixed;
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        max-width: 400px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        z-index: 901;
+        animation: slideUp 0.5s ease-out;
+    `;
+
+    if (targetElement) {
+        const rect = targetElement.getBoundingClientRect();
+        tourBox.style.top = (rect.bottom + 20) + "px";
+        tourBox.style.left = (rect.left) + "px";
+
+        // Highlight target
+        const highlightBox = document.createElement("div");
+        highlightBox.style.cssText = `
+            position: fixed;
+            top: ${rect.top - 10}px;
+            left: ${rect.left - 10}px;
+            width: ${rect.width + 20}px;
+            height: ${rect.height + 20}px;
+            border: 2px solid #3B82F6;
+            border-radius: 8px;
+            box-shadow: 0 0 0 2000px rgba(15, 23, 42, 0.5);
+            z-index: 899;
+            pointer-events: none;
+        `;
+        document.body.appendChild(highlightBox);
+    } else {
+        tourBox.style.top = "50%";
+        tourBox.style.left = "50%";
+        tourBox.style.transform = "translate(-50%, -50%)";
+    }
+
+    tourBox.innerHTML = `
+        <h3 style="color: #0F172A; margin-bottom: 12px; font-size: 20px;">${currentStep.title}</h3>
+        <p style="color: #666; margin-bottom: 24px; line-height: 1.6;">${currentStep.description}</p>
+        <div style="display: flex; gap: 12px;">
+            <button id="tour-next" style="
+                background-color: #3B82F6;
+                color: white;
+                border: none;
+                padding: 10px 24px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+                flex: 1;
+            ">${currentStep.nextText}</button>
+            <button id="tour-skip-step" style="
+                background-color: #E2E8F0;
+                color: #333;
+                border: none;
+                padding: 10px 24px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-weight: 600;
+            ">Skip</button>
+        </div>
+    `;
+
+    document.body.appendChild(tourBox);
+
+    document.getElementById("tour-next").addEventListener("click", () => {
+        tourOverlay.remove();
+        tourBox.remove();
+        document.querySelectorAll("[id^='step-overlay'], div[style*='position: fixed'][style*='border: 2px solid']").forEach(el => el.remove());
+
+        if (step < steps.length) {
+            if (step === 1) document.getElementById("documents").scrollIntoView({ behavior: "smooth" });
+            if (step === 2) document.getElementById("about").scrollIntoView({ behavior: "smooth" });
+        }
+
+        guideTourStep(step + 1);
+    });
+
+    document.getElementById("tour-skip-step").addEventListener("click", () => {
+        tourOverlay.remove();
+        tourBox.remove();
+        document.querySelectorAll("[id^='step-overlay'], div[style*='position: fixed'][style*='border: 2px solid']").forEach(el => el.remove());
+    });
 }
