@@ -6,8 +6,8 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f5f7fa;
-    color: #2d3748;
+    background-color: #f5f5f5;
+    color: #333;
     line-height: 1.6;
 }
 
@@ -17,36 +17,36 @@ body {
     padding: 0 20px;
 }
 
-/* ====================================================== */
-/*                      HEADER                            */
-/* ====================================================== */
+/* Header */
 .header {
-    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-    padding: 16px 0;
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
     z-index: 100;
-    box-shadow: 0 2px 20px rgba(15, 23, 42, 0.15);
 }
 
 .header .container {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 15px 20px;
 }
 
 .logo {
-    font-size: 28px;
-    font-weight: 800;
-    color: #3B82F6;
+    font-size: 24px;
+    font-weight: 700;
+    color: #0066cc;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     cursor: pointer;
-    letter-spacing: -0.5px;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease;
 }
 
 .logo:hover {
     transform: scale(1.05);
-    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
 }
 
 .navbar ul {
@@ -56,608 +56,402 @@ body {
 }
 
 .navbar a {
-    color: #cbd5e1;
     text-decoration: none;
+    color: #333;
     font-weight: 500;
-    transition: all 0.3s ease;
-    position: relative;
+    font-size: 14px;
+    transition: color 0.3s ease;
 }
 
 .navbar a:hover {
-    color: #3B82F6;
-}
-
-.navbar a::after {
-    content: '';
-    position: absolute;
-    bottom: -5px;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background: #3B82F6;
-    transition: width 0.3s ease;
-}
-
-.navbar a:hover::after {
-    width: 100%;
+    color: #0066cc;
 }
 
 .user-menu {
     display: flex;
-    gap: 12px;
-    align-items: center;
-}
-
-.btn-login, .btn-signup {
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    border: none;
+    gap: 15px;
 }
 
 .btn-login {
     background-color: transparent;
-    color: #cbd5e1;
-    border: 2px solid #3B82F6;
+    color: #0066cc;
+    border: 2px solid #0066cc;
+    padding: 8px 20px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
 }
 
 .btn-login:hover {
-    background-color: #3B82F6;
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    background-color: #0066cc;
+    color: #ffffff;
 }
 
 .btn-signup {
-    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-    color: white;
+    background-color: #0066cc;
+    color: #ffffff;
+    border: none;
+    padding: 8px 20px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
 }
 
 .btn-signup:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+    background-color: #0052a3;
 }
 
-/* ====================================================== */
-/*                      HERO SECTION                      */
-/* ====================================================== */
+/* Hero Section */
 .hero {
-    background: linear-gradient(135deg, #001a4d 0%, #002d7a 50%, #001a4d 100%);
-    padding: 120px 20px;
+    background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+    color: #ffffff;
+    padding: 100px 20px;
     text-align: center;
-    min-height: 80vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.hero-content {
-    max-width: 800px;
-    color: #F8FAFC;
 }
 
 .hero-content h1 {
-    font-size: 64px;
-    font-weight: 800;
+    font-size: 48px;
+    font-weight: 700;
     margin-bottom: 20px;
-    color: #F8FAFC;
-    letter-spacing: -2px;
+    letter-spacing: -0.5px;
 }
 
 .hero-content p {
-    font-size: 22px;
-    margin-bottom: 50px;
-    color: #CBD5E1;
-    font-weight: 300;
-    line-height: 1.8;
+    font-size: 18px;
+    margin-bottom: 30px;
+    opacity: 0.95;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-    color: #F8FAFC;
+    background-color: #ffffff;
+    color: #0066cc;
     border: none;
-    padding: 16px 60px;
-    font-size: 18px;
-    font-weight: 700;
-    border-radius: 12px;
+    padding: 14px 40px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 4px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
 }
 
 .btn-primary:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 35px rgba(59, 130, 246, 0.7);
-}
-
-.btn-primary:active {
-    transform: translateY(-1px);
-}
-
-/* ====================================================== */
-/*                 AUTH MODAL STYLING                     */
-/* ====================================================== */
-.auth-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(15, 23, 42, 0.7);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 999;
-    opacity: 1;
-    transition: opacity 0.3s ease;
-}
-
-.auth-overlay.hidden {
-    display: none !important;
-    opacity: 0;
-}
-
-.auth-panel {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 50px 40px;
-    border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
-    width: 90%;
-    max-width: 450px;
-    opacity: 1;
-    transition: all 0.3s ease;
-}
-
-.auth-panel.hidden {
-    display: none !important;
-    opacity: 0;
-}
-
-.auth-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    border-bottom: 2px solid #f0f1f3;
-    padding-bottom: 20px;
-}
-
-.auth-header h2 {
-    margin: 0;
-    font-size: 28px;
-    color: #0F172A;
-    font-weight: 700;
-}
-
-.auth-close {
-    background: none;
-    border: none;
-    font-size: 32px;
-    cursor: pointer;
-    color: #cbd5e1;
-    transition: all 0.3s ease;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-}
-
-.auth-close:hover {
-    background-color: #f5f7fa;
-    color: #0F172A;
-    transform: rotate(90deg);
-}
-
-.auth-form {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.auth-form input {
-    padding: 14px 16px;
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 15px;
-    transition: all 0.3s ease;
-    background-color: #f9fafc;
-}
-
-.auth-form input:focus {
-    outline: none;
-    border-color: #3B82F6;
-    background-color: white;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.auth-submit-btn {
-    padding: 14px;
-    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 16px;
-    transition: all 0.3s ease;
-    margin-top: 10px;
-}
-
-.auth-submit-btn:hover {
+    background-color: #f0f0f0;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-#auth-switch {
-    text-align: center;
-    font-size: 14px;
-    color: #64748b;
-    margin-top: 20px;
-}
-
-#switch-to-signup, #switch-to-login {
-    cursor: pointer;
-    color: #3B82F6;
-    font-weight: 700;
-}
-
-/* ====================================================== */
-/*                  DOCUMENTS SECTION                     */
-/* ====================================================== */
+/* Documents Section */
 .documents {
-    padding: 100px 20px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    min-height: 100vh;
+    padding: 80px 20px;
+    background-color: #ffffff;
 }
 
 .documents h2 {
-    font-size: 42px;
-    font-weight: 800;
+    font-size: 36px;
+    font-weight: 700;
     margin-bottom: 50px;
-    color: #0F172A;
+    color: #000;
     text-align: center;
 }
 
 .document-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 25px;
-    margin-bottom: 80px;
+    gap: 30px;
 }
 
 .document-card {
-    background: white;
-    padding: 35px 25px;
-    border-radius: 16px;
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 30px 20px;
     text-align: center;
-    cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    border: 2px solid transparent;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
 }
 
 .document-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
-    border-color: #3B82F6;
+    border-color: #0066cc;
+    box-shadow: 0 8px 20px rgba(0, 102, 204, 0.1);
+    transform: translateY(-5px);
 }
 
 .doc-icon {
     font-size: 48px;
     margin-bottom: 15px;
-    display: inline-block;
-    transition: transform 0.3s ease;
-}
-
-.document-card:hover .doc-icon {
-    transform: scale(1.15);
 }
 
 .document-card h3 {
-    font-size: 20px;
-    font-weight: 700;
-    color: #0F172A;
+    font-size: 18px;
+    font-weight: 600;
     margin-bottom: 10px;
+    color: #000;
 }
 
 .document-card p {
-    font-size: 14px;
-    color: #64748b;
-    font-weight: 500;
-}
-
-.add-file-card {
-    border: 2px dashed #3B82F6;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.05) 100%);
-}
-
-.add-file-card:hover {
-    border-color: #2563EB;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
-}
-
-.add-file-icon {
-    font-size: 56px;
-    color: #3B82F6;
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 20px;
+    flex-grow: 1;
 }
 
 .btn-delete {
-    background-color: #EF4444;
-    color: white;
+    background-color: #dc3545;
+    color: #ffffff;
     border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
+    padding: 10px 25px;
+    font-size: 14px;
     font-weight: 600;
-    transition: all 0.3s ease;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
 .btn-delete:hover {
-    background-color: #DC2626;
-    transform: scale(1.05);
+    background-color: #c82333;
 }
 
-/* ====================================================== */
-/*            UPLOADED DOCUMENTS LIST STYLING             */
-/* ====================================================== */
-
-.uploaded-documents-list {
-    margin-top: 50px;
-}
-
-.uploaded-documents-list > p {
-    text-align: center;
-    color: #94a3b8;
-    font-size: 16px;
+/* Footer */
+.footer {
+    background-color: #1a1a1a;
+    color: #ffffff;
     padding: 40px 20px;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.05) 100%);
-    border: 2px dashed #cbd5e1;
-    border-radius: 12px;
-    font-weight: 500;
+    text-align: center;
 }
 
-.uploaded-documents-list > div {
-    background: white;
-    padding: 24px;
-    border-radius: 12px;
-    margin-bottom: 16px;
+.footer .container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    border: 2px solid transparent;
-    border-left: 4px solid #3B82F6;
+    flex-wrap: wrap;
+    gap: 20px;
 }
 
-.uploaded-documents-list > div:hover {
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
-    transform: translateX(8px);
-    border-left-color: #2563EB;
-}
-
-.uploaded-documents-list > div > div {
-    flex: 1;
-}
-
-.uploaded-documents-list > div strong {
-    display: block;
-    font-size: 18px;
-    color: #0F172A;
-    margin-bottom: 8px;
-    font-weight: 700;
-}
-
-.uploaded-documents-list > div p {
-    font-size: 12px;
-    color: #94a3b8;
-    margin: 0;
-    font-family: 'Courier New', monospace;
-    word-break: break-all;
-}
-
-.btn-delete {
-    background-color: #EF4444;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
+.footer p {
     font-size: 14px;
-    transition: all 0.3s ease;
-    margin-left: 20px;
-    white-space: nowrap;
+    opacity: 0.8;
 }
 
-/* ====================================================== */
-/*         DOCUMENT ACTION BUTTONS STYLING                */
-/* ====================================================== */
-
-.document-actions {
+.footer ul {
     display: flex;
-    gap: 10px;
-    margin-left: 20px;
-    align-items: center;
+    list-style: none;
+    gap: 30px;
 }
 
-.btn-view, .btn-download, .btn-delete {
-    padding: 10px 16px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 13px;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
+.footer a {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s ease;
 }
 
-/* View Button */
-.btn-view {
-    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+.footer a:hover {
+    color: #0066cc;
 }
 
-.btn-view:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
-}
-
-.btn-view:active {
-    transform: translateY(0);
-}
-
-/* Download Button */
-.btn-download {
-    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-}
-
-.btn-download:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
-}
-
-.btn-download:active {
-    transform: translateY(0);
-}
-
-/* Delete Button */
-.btn-delete {
-    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
-    color: white;
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
-}
-
-.btn-delete:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
-}
-
-.btn-delete:active {
-    transform: translateY(0);
-}
-
-/* Icon styling inside buttons */
-.btn-view::before { content: '👁️ '; }
-.btn-download::before { content: '⬇️ '; }
-.btn-delete::before { content: '🗑️ '; }
-
-/* Responsive - stack buttons on mobile */
-@media (max-width: 640px) {
-    .document-actions {
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-left: 0;
-        margin-top: 12px;
-    }
-
-    .btn-view, .btn-download, .btn-delete {
-        flex: 1;
-        min-width: 100px;
-        font-size: 12px;
-        padding: 8px 12px;
-    }
-
-    .uploaded-documents-list > div {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-}
-
-/* ====================================================== */
-/*                   FOOTER                              */
-/* ====================================================== */
-.footer {
-    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-    color: #cbd5e1;
-    text-align: center;
-    padding: 30px 20px;
-    box-shadow: 0 -2px 20px rgba(15, 23, 42, 0.15);
-}
-
-/* ====================================================== */
-/*              FIX: POINTER EVENTS & Z-INDEX             */
-/* ====================================================== */
-button {
-    pointer-events: auto !important;
-}
-
-.auth-overlay.hidden {
-    pointer-events: none !important;
-    display: none !important;
-}
-
-.auth-overlay:not(.hidden) {
-    pointer-events: auto !important;
-}
-
-.auth-panel.hidden {
-    pointer-events: none !important;
-    display: none !important;
-}
-
-.auth-panel:not(.hidden) {
-    pointer-events: auto !important;
-}
-
-input {
-    pointer-events: auto !important;
-}
-
-.header {
-    pointer-events: auto !important;
-}
-
-/* ====================================================== */
-/*                RESPONSIVE DESIGN                       */
-/* ====================================================== */
+/* Responsive Design */
 @media (max-width: 768px) {
-    .navbar ul {
-        gap: 15px;
+    .navbar {
+        display: none;
     }
 
     .hero-content h1 {
-        font-size: 42px;
-    }
-
-    .hero-content p {
-        font-size: 18px;
-    }
-
-    .btn-primary {
-        padding: 14px 40px;
-        font-size: 16px;
-    }
-
-    .document-grid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-    }
-
-    .documents h2 {
         font-size: 32px;
     }
 
-    .auth-panel {
-        max-width: 90%;
-        padding: 40px 25px;
+    .documents h2 {
+        font-size: 28px;
+    }
+
+    .document-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .footer .container {
+        flex-direction: column;
     }
 }
+
+/* ====================================================== */
+/*                   AUTH MODAL (ADDED)                   */
+/* ====================================================== */
+
+/* Overlay */
+.auth-overlay {
+    position: fixed;
+    top: 0; 
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+    z-index: 900;
+}
+
+.auth-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Slide Panel */
+.auth-panel {
+    position: fixed;
+    top: 0;
+    right: -420px;
+    width: 350px;
+    max-width: 92%;
+    height: 100%;
+    background: #fff;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.12);
+    padding: 25px;
+    transition: right 0.35s ease;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.auth-panel.show {
+    right: 0;
+}
+
+/* Header */
+.auth-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#auth-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #004499;
+}
+
+.auth-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #666;
+}
+
+.auth-close:hover {
+    color: #000;
+}
+
+/* Form */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.auth-form input {
+    padding: 10px 12px;
+    border: 1px solid #dcdcdc;
+    border-radius: 6px;
+}
+
+.auth-form input:focus {
+    border-color: #0066cc;
+    box-shadow: 0 0 0 2px rgba(0,102,204,0.18);
+}
+
+.auth-submit-btn {
+    margin-top: 12px;
+    padding: 12px;
+    background: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.auth-submit-btn:hover {
+    background: #0052a3;
+}
+
+/* Switch Text */
+.auth-switch-text {
+    font-size: 14px;
+    text-align: center;
+}
+
+.auth-switch-text span {
+    color: #0066cc;
+    cursor: pointer;
+    font-weight: 600;
+}
+/* Uploaded Documents List Styling */
+.uploaded-documents-list .doc-row {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: box-shadow 0.25s ease, transform 0.2s ease;
+}
+
+.uploaded-documents-list .doc-row:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+}
+
+.doc-info {
+    font-size: 15px;
+    font-weight: 600;
+    color: #222;
+}
+
+.doc-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.doc-actions a,
+.doc-actions button {
+    font-size: 14px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+/* View button */
+.doc-actions a.view-btn {
+    background-color: #0066cc;
+    color: white;
+}
+
+/* Download button */
+.doc-actions a.download-btn {
+    background-color: #28a745;
+    color: white;
+}
+
+/* Delete button */
+.doc-actions button.delete-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+}
+
 
