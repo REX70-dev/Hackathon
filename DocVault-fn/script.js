@@ -9,381 +9,320 @@
 
 const PINATA_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJlNmU5ZDY3Mi05MjhiLTRlYWQtOTViMi1hYTRmNGIyODhjNjciLCJlbWFpbCI6InVwYWRoeWF5eWFzaDgyOEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiOGJjMzNjNDIyNmRlMTk0NGYzZWQiLCJzY29wZWRLZXlTZWNyZXQiOiI2MmMwMDFmMGMzM2QzMzExYmM4YTY0MjYxNTVjNzA2MTU2Mzg3ZjIzODBhMjM0ZWRmMDU3MDlkNThhNTg4NjBjIiwiZXhwIjoxNzk0NTYzOTY0fQ.TND-ia2X8jI33dibYp68R2Zh64_orOPthVnqtl0qt5w';
 
-// Document storage object - stores file data for each document
+// Document storage object - stores file data for each document (kept for mapping)
 const documentStorage = {
-    1: { files: [] },
-    2: { files: [] },
-    3: { files: [] },
-    4: { files: [] }
+    1: { files: [] }, // Aadhaar
+    2: { files: [] }, // Pan
+    3: { files: [] }, // Property
+    4: { files: [] }  // Certificates
 };
+
+// centralized list of all uploaded files
+const generalUploads = [];
 
 // Currently selected document ID for upload
 let currentDocId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('file-input');
-    const uploadArea = document.querySelector('.upload-area-inline');
     const loginBtn = document.querySelector('.btn-login');
     const signupBtn = document.querySelector('.btn-signup');
     const getStartedBtn = document.querySelector('.btn-primary');
 
-    // File upload handling from main upload card
-    if (fileInput && uploadArea) {
-        uploadArea.addEventListener('click', () => {
-            currentDocId = null; // Upload to general area
-            fileInput.click();
-        });
-
-        // Drag and drop on upload card
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.style.backgroundColor = '#f0f5ff';
-        });
-
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.style.backgroundColor = '#ffffff';
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.style.backgroundColor = '#ffffff';
-            currentDocId = null;
-            handleFiles(e.dataTransfer.files);
-        });
-
+    if (fileInput) {
         fileInput.addEventListener('change', (e) => {
             handleFiles(e.target.files);
-            fileInput.value = ''; // Reset input
+            fileInput.value = '';
         });
     }
 
-    // Button event listeners
-    if (loginBtn) {
-        loginBtn.addEventListener('click', () => {
-            alert('Login functionality coming soon!');
-        });
-    }
+    if (loginBtn) loginBtn.addEventListener('click', () => alert('Login functionality coming soon!'));
+    if (signupBtn) signupBtn.addEventListener('click', () => alert('Sign up functionality coming soon!'));
+    if (getStartedBtn) getStartedBtn.addEventListener('click', () => {
+        const uploadSection = document.querySelector('.documents');
+        if (uploadSection) uploadSection.scrollIntoView({ behavior: 'smooth' });
+    });
 
-    if (signupBtn) {
-        signupBtn.addEventListener('click', () => {
-            alert('Sign up functionality coming soon!');
-        });
-    }
-
-    if (getStartedBtn) {
-        getStartedBtn.addEventListener('click', () => {
-            const uploadSection = document.querySelector('.documents');
-            if (uploadSection) {
-                uploadSection.scrollIntoView({ behavior: 'smooth' });
-            }
-        });
-    }
-
-    // Handle document card clicks for uploading
+    // click handling: section click => open file picker for that section
     document.addEventListener('click', (e) => {
-        const viewBtn = e.target.closest('.view-btn');
-        if (viewBtn && !e.target.closest('.upload-card')) {
-            e.stopPropagation();
-            const card = viewBtn.closest('.document-card');
-            const docId = card.getAttribute('data-doc-id');
-            viewDocument(docId);
-            return;
-        }
-
-        const deleteBtn = e.target.closest('.btn-delete');
-        if (deleteBtn && !e.target.closest('.upload-card')) {
-            e.stopPropagation();
-            const card = deleteBtn.closest('.document-card');
-            const docId = card.getAttribute('data-doc-id');
-            deleteDocument(docId);
-            return;
-        }
-
-        // Click on document card to upload
+        // card-level view/delete from central list remain handled separately
         const card = e.target.closest('.document-card[data-doc-id]');
         if (card) {
             const docId = card.getAttribute('data-doc-id');
-            
-            // Allow upload if no files exist yet
-            if (documentStorage[docId].files.length === 0) {
-                currentDocId = docId;
-                fileInput.click();
+            // if file exists, ask to replace
+            if (documentStorage[docId].files.length > 0) {
+                if (!confirm('This section already has an uploaded file. Replace it?')) {
+                    return;
+                }
+            }
+            currentDocId = docId;
+            const fileInput = document.getElementById('file-input');
+            if (fileInput) fileInput.click();
+        }
+
+        const viewBtn = e.target.closest('.view-btn');
+        if (viewBtn) {
+            const cardView = viewBtn.closest('.document-card');
+            if (cardView) {
+                const docId = cardView.getAttribute('data-doc-id');
+                viewDocument(docId);
+            }
+        }
+
+        const deleteBtn = e.target.closest('.btn-delete');
+        if (deleteBtn) {
+            const cardDelete = deleteBtn.closest('.document-card');
+            if (cardDelete) {
+                const docId = cardDelete.getAttribute('data-doc-id');
+                deleteDocument(docId);
             }
         }
     });
 
-    // Initialize all document cards
+    // initialize UI
     document.querySelectorAll('.document-card[data-doc-id]').forEach(card => {
         const docId = card.getAttribute('data-doc-id');
         updateDocumentCard(docId);
-        createFileListContainer(docId);
     });
+    updateUploadedDocumentsList();
 });
 
-/* Create file list container under each document card */
-function createFileListContainer(docId) {
-    const card = document.querySelector(`[data-doc-id="${docId}"]`);
-    if (!card) return;
-
-    // Remove existing file list if any
-    const existingList = card.querySelector('.file-list-container');
-    if (existingList) {
-        existingList.remove();
-    }
-
-    // Create new file list container
-    const fileListContainer = document.createElement('div');
-    fileListContainer.className = 'file-list-container';
-    fileListContainer.style.marginTop = '10px';
-    fileListContainer.style.paddingTop = '10px';
-    fileListContainer.style.borderTop = '1px solid #eee';
-    fileListContainer.id = `file-list-${docId}`;
-
-    card.appendChild(fileListContainer);
-}
-
-/* Handle file uploads */
+/* Handle file selection for a section */
 function handleFiles(files) {
     if (!files || files.length === 0) return;
 
-    // If uploading to a specific document, only take the first file
-    if (currentDocId) {
-        uploadFileToIPFS(files[0], currentDocId);
-    } else {
-        // Multiple uploads to general area
-        Array.from(files).forEach(file => {
-            uploadFileToIPFS(file);
-        });
-    }
-}
-
-/* Upload file to IPFS via Pinata */
-async function uploadFileToIPFS(file, docId = null) {
-    const data = new FormData();
-    data.append('file', file);
-
-    const metadata = {
-        name: file.name,
-        keyvalues: { uploadedAt: new Date().toISOString() }
-    };
-    data.append('pinataMetadata', JSON.stringify(metadata));
-
-    try {
-        const res = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${PINATA_JWT}`
-            },
-            body: data
-        });
-
-        if (!res.ok) {
-            const text = await res.text();
-            throw new Error(`Pinata error ${res.status}: ${text}`);
-        }
-
-        const result = await res.json();
-        console.log('Uploaded to IPFS:', result);
-
-        const cid = result.IpfsHash;
-
-        // If uploading to specific document
-        if (docId) {
-            const fileObj = {
-                name: file.name,
-                type: file.type,
-                size: file.size,
-                uploadDate: new Date().toLocaleDateString(),
-                cid: cid,
-                ipfsUrl: `https://ipfs.io/ipfs/${encodeURIComponent(cid)}`,
-                data: file
-            };
-            
-            // Store file under the specific document
-            documentStorage[docId].files.push(fileObj);
-            updateDocumentCard(docId);
-            updateFileList(docId);
-            alert(`${file.name} uploaded successfully to this document!`);
-        } else {
-            // Add to general grid
-            addDocumentToGrid(file.name, cid);
-            alert(`Upload successful! CID: ${cid}`);
-        }
-    } catch (err) {
-        console.error(err);
-        alert('Upload failed: ' + (err && err.message ? err.message : err));
-    }
-}
-
-/* Update file list display under document card */
-function updateFileList(docId) {
-    const fileListContainer = document.querySelector(`#file-list-${docId}`);
-    if (!fileListContainer) return;
-
-    const files = documentStorage[docId].files;
-    
-    // Clear existing list
-    fileListContainer.innerHTML = '';
-
-    if (files.length === 0) {
+    if (!currentDocId) {
+        alert('Please click a document section (Aadhaar / Pan / ...) to upload.');
         return;
     }
 
-    // Create file list
-    const fileList = document.createElement('div');
-    fileList.style.backgroundColor = '#f9f9f9';
-    fileList.style.padding = '10px';
-    fileList.style.borderRadius = '5px';
-
-    files.forEach((file, index) => {
-        const fileItem = document.createElement('div');
-        fileItem.style.display = 'flex';
-        fileItem.style.justifyContent = 'space-between';
-        fileItem.style.alignItems = 'center';
-        fileItem.style.padding = '8px 0';
-        fileItem.style.borderBottom = index < files.length - 1 ? '1px solid #eee' : 'none';
-
-        const fileInfo = document.createElement('div');
-        fileInfo.style.flex = '1';
-        fileInfo.innerHTML = `
-            <div style="font-weight: 500; color: #333;">${escapeHtml(file.name)}</div>
-            <div style="font-size: 0.85em; color: #999;">Uploaded: ${file.uploadDate}</div>
-        `;
-
-        const fileActions = document.createElement('div');
-        fileActions.style.display = 'flex';
-        fileActions.style.gap = '5px';
-
-        const viewLink = document.createElement('a');
-        viewLink.textContent = 'View';
-        viewLink.href = file.ipfsUrl;
-        viewLink.target = '_blank';
-        viewLink.rel = 'noopener';
-        viewLink.style.padding = '5px 10px';
-        viewLink.style.backgroundColor = '#007bff';
-        viewLink.style.color = '#fff';
-        viewLink.style.textDecoration = 'none';
-        viewLink.style.borderRadius = '3px';
-        viewLink.style.fontSize = '0.9em';
-
-        const downloadLink = document.createElement('a');
-        downloadLink.textContent = 'Download';
-        downloadLink.href = file.ipfsUrl;
-        downloadLink.target = '_blank';
-        downloadLink.rel = 'noopener';
-        downloadLink.style.padding = '5px 10px';
-        downloadLink.style.backgroundColor = '#28a745';
-        downloadLink.style.color = '#fff';
-        downloadLink.style.textDecoration = 'none';
-        downloadLink.style.borderRadius = '3px';
-        downloadLink.style.fontSize = '0.9em';
-
-        fileActions.appendChild(viewLink);
-        fileActions.appendChild(downloadLink);
-
-        fileItem.appendChild(fileInfo);
-        fileItem.appendChild(fileActions);
-        fileList.appendChild(fileItem);
-    });
-
-    fileListContainer.appendChild(fileList);
+    const file = files[0];
+    uploadLocalFile(file, currentDocId);
+    currentDocId = null;
 }
 
-/* Add uploaded document to grid */
-function addDocumentToGrid(title, cid) {
-    const grid = document.querySelector('.document-grid');
-    if (!grid) return;
+/* Local upload (no external upload). Store file under section and central list. */
+function uploadLocalFile(file, docId) {
+    // revoke previous objectURL if replacing
+    const prev = (documentStorage[docId].files[0] || null);
+    if (prev && prev.objectUrl) {
+        URL.revokeObjectURL(prev.objectUrl);
+    }
 
-    const card = document.createElement('div');
-    card.className = 'document-card';
+    const objectUrl = URL.createObjectURL(file);
+    const fileObj = {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        uploadDate: new Date().toLocaleString(),
+        objectUrl,
+        section: docId,
+        id: Date.now() + Math.random().toString(36).slice(2,8)
+    };
 
-    const uploadDate = new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
+    // replace section file (keep single file per section)
+    documentStorage[docId].files = [fileObj];
 
-    card.innerHTML = `
-        <div class="doc-icon">📄</div>
-        <h3>${escapeHtml(title)}</h3>
-        <p>Last updated: ${uploadDate}</p>
-        <a href="https://ipfs.io/ipfs/${encodeURIComponent(cid)}" target="_blank" rel="noopener" class="btn-secondary">View</a>
-    `;
+    // remove any previous central entry for this section (so central list shows latest)
+    for (let i = generalUploads.length - 1; i >= 0; i--) {
+        if (generalUploads[i].section === docId) generalUploads.splice(i, 1);
+    }
+    generalUploads.push(fileObj);
 
-    grid.prepend(card);
+    updateDocumentCard(docId);
+    updateUploadedDocumentsList();
 }
 
-/* Basic HTML escaping */
-function escapeHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-// Update document card display
+/* Update document card UI - show green tick when file exists */
 function updateDocumentCard(docId) {
     const card = document.querySelector(`[data-doc-id="${docId}"]`);
     if (!card) return;
 
     const statusText = card.querySelector('.doc-status');
-    const viewBtn = card.querySelector('.view-btn');
-    const deleteBtn = card.querySelector('.btn-delete');
-    
+
     const filesCount = documentStorage[docId].files.length;
-    
+    let tick = card.querySelector('.uploaded-tick');
+
     if (filesCount > 0) {
-        // File uploaded
-        const doc = documentStorage[docId].files[0]; // Get first file
-        statusText.textContent = `📎 ${doc.name}`;
-        statusText.style.fontSize = '0.9em';
-        statusText.style.color = '#666';
-        
-        viewBtn.style.display = 'inline-block';
-        deleteBtn.style.display = 'inline-block';
-        
-        // Make card non-clickable when file exists
-        card.style.cursor = 'default';
+        const doc = documentStorage[docId].files[0];
+        statusText.textContent = ` ${doc.name}`;
+        statusText.style.color = '#333';
+
+        if (!tick) {
+            tick = document.createElement('div');
+            tick.className = 'uploaded-tick';
+            tick.style.display = 'flex';
+            tick.style.alignItems = 'center';
+            tick.style.gap = '8px';
+            tick.style.marginTop = '8px';
+            tick.style.color = '#28a745';
+            tick.style.fontSize = '0.95em';
+            tick.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 6L9 17l-5-5" stroke="#28a745" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Stored under this section</span>
+            `;
+            statusText.insertAdjacentElement('afterend', tick);
+        } else {
+            tick.style.display = 'flex';
+        }
+        card.style.cursor = 'pointer';
     } else {
-        // No file
-        statusText.textContent = 'Click to upload';
-        statusText.style.fontSize = '0.9em';
+        statusText.textContent = 'No file uploaded';
         statusText.style.color = '#999';
-        viewBtn.style.display = 'none';
-        deleteBtn.style.display = 'none';
-        
-        // Make card clickable for upload
+        if (tick) tick.remove();
         card.style.cursor = 'pointer';
     }
 }
 
-// View document
+/* Centralized uploaded documents list update */
+function updateUploadedDocumentsList() {
+    const container = document.getElementById('uploaded-documents-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (generalUploads.length === 0) {
+        container.innerHTML = `<p class="empty-note" style="color:#666;">No uploaded documents yet.</p>`;
+        return;
+    }
+
+    const list = document.createElement('div');
+    list.style.display = 'flex';
+    list.style.flexDirection = 'column';
+    list.style.gap = '8px';
+
+    const docNames = { 1: 'Aadhaar Card', 2: 'Pan Card', 3: 'Property Deed', 4: 'Certificates' };
+
+    // show newest first
+    generalUploads.slice().reverse().forEach(item => {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.justifyContent = 'space-between';
+        row.style.alignItems = 'center';
+        row.style.padding = '10px';
+        row.style.border = '1px solid #eee';
+        row.style.borderRadius = '6px';
+        row.style.background = '#fff';
+
+        const info = document.createElement('div');
+        info.innerHTML = `<div style="font-weight:600">${escapeHtml(item.name)}</div>
+                          <div style="font-size:0.85em;color:#666">${docNames[item.section] || 'General'} • ${item.uploadDate}</div>`;
+
+        const actions = document.createElement('div');
+        actions.style.display = 'flex';
+        actions.style.gap = '6px';
+
+        const view = document.createElement('a');
+        view.textContent = 'View';
+        view.href = item.objectUrl;
+        view.target = '_blank';
+        view.rel = 'noopener';
+        view.style.padding = '6px 10px';
+        view.style.background = '#007bff';
+        view.style.color = '#fff';
+        view.style.borderRadius = '4px';
+        view.style.textDecoration = 'none';
+
+        const download = document.createElement('a');
+        download.textContent = 'Download';
+        download.href = item.objectUrl;
+        download.download = item.name;
+        download.style.padding = '6px 10px';
+        download.style.background = '#28a745';
+        download.style.color = '#fff';
+        download.style.borderRadius = '4px';
+        download.style.textDecoration = 'none';
+
+        const del = document.createElement('button');
+        del.textContent = 'Delete';
+        del.style.padding = '6px 10px';
+        del.style.background = '#dc3545';
+        del.style.color = '#fff';
+        del.style.border = 'none';
+        del.style.borderRadius = '4px';
+        del.style.cursor = 'pointer';
+
+        del.addEventListener('click', () => {
+            if (!confirm(`Delete "${item.name}"?`)) return;
+            deleteUploaded(item.id, item.section);
+        });
+
+        actions.appendChild(view);
+        actions.appendChild(download);
+        actions.appendChild(del);
+
+        row.appendChild(info);
+        row.appendChild(actions);
+        list.appendChild(row);
+    });
+
+    container.appendChild(list);
+}
+
+/* Delete uploaded item from central list (and from its section mapping if any) */
+function deleteUploaded(id, section = null) {
+    for (let i = generalUploads.length - 1; i >= 0; i--) {
+        if (generalUploads[i].id === id) {
+            // revoke object URL
+            if (generalUploads[i].objectUrl) URL.revokeObjectURL(generalUploads[i].objectUrl);
+            generalUploads.splice(i, 1);
+        }
+    }
+
+    if (section) {
+        const files = documentStorage[section].files;
+        for (let i = files.length - 1; i >= 0; i--) {
+            if (files[i].id === id) {
+                if (files[i].objectUrl) URL.revokeObjectURL(files[i].objectUrl);
+                files.splice(i, 1);
+            }
+        }
+        updateDocumentCard(section);
+    }
+
+    updateUploadedDocumentsList();
+}
+
+/* Delete mapping for a section (clears mapping and central list entries for that section) */
+function deleteDocument(docId) {
+    if (!confirm('Are you sure you want to delete documents for this section?')) return;
+
+    // remove central entries for this section
+    for (let i = generalUploads.length - 1; i >= 0; i--) {
+        if (generalUploads[i].section === docId) {
+            if (generalUploads[i].objectUrl) URL.revokeObjectURL(generalUploads[i].objectUrl);
+            generalUploads.splice(i, 1);
+        }
+    }
+    // clear section storage
+    const files = documentStorage[docId].files;
+    for (let i = files.length - 1; i >= 0; i--) {
+        if (files[i].objectUrl) URL.revokeObjectURL(files[i].objectUrl);
+        files.splice(i, 1);
+    }
+    updateDocumentCard(docId);
+    updateUploadedDocumentsList();
+}
+
+/* View document from section (opens first file for the section) */
 function viewDocument(docId) {
     const files = documentStorage[docId].files;
-    
-    if (files.length === 0) {
+    if (!files || files.length === 0) {
         alert('No files in this folder');
         return;
     }
-    
-    const doc = files[0]; // View first file
-    
-    // Open IPFS link or local file
-    if (doc.ipfsUrl) {
-        window.open(doc.ipfsUrl, '_blank');
-    } else {
-        const fileURL = URL.createObjectURL(doc.data);
-        window.open(fileURL, '_blank');
-    }
+    const doc = files[0];
+    window.open(doc.objectUrl, '_blank');
 }
 
-// Delete document
-function deleteDocument(docId) {
-    if (confirm('Are you sure you want to delete this document?')) {
-        documentStorage[docId].files = [];
-        updateDocumentCard(docId);
-        updateFileList(docId);
-    }
+/* Basic HTML escaping */
+function escapeHtml(str) {
+    return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
