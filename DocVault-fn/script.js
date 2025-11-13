@@ -1,62 +1,130 @@
-/* ==========================
-   DOCUMENT TYPE DETECTOR
-   ========================== */
-
-async function extractTextFromFile(file) {
+/* ===========================================
+   UNIVERSAL OCR ENGINE (IMAGE + PDF SUPPORT)
+   =========================================== */
+async function extractText(file) {
     const type = file.type;
 
-    // ---------- PDF ----------
-    if (type === "application/pdf") {
-        const array = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: array }).promise;
-        let text = "";
-
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const content = await page.getTextContent();
-            text += content.items.map(s => s.str).join(" ");
-        }
-        return text;
+    if (type.includes("image")) {
+        return await imageToText(file);
     }
 
-    // ---------- IMAGE (OCR) ----------
-    if (type.startsWith("image/")) {
-        const result = await Tesseract.recognize(file, "eng");
-        return result.data.text || "";
+    if (type === "application/pdf") {
+        return await pdfToText(file);
     }
 
     return "";
 }
 
-function detectDocumentType(text) {
-    const lower = text.toLowerCase();
+async function imageToText(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = async () => {
+            const imgData = reader.result;
+            const result = await Tesseract.recognize(imgData, "eng");
+            resolve(result.data.text.toLowerCase());
+        };
+        reader.readAsDataURL(file);
+    });
+}
 
-    const aadhaarRegex = /\b\d{4}\s?\d{4}\s?\d{4}\b/;
-    const panRegex = /[A-Z]{5}[0-9]{4}[A-Z]/i;
+async function pdfToText(file) {
+    const pdfData = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
 
-    let scores = {
-        aadhaar: 0,
-        pan: 0,
-        property: 0,
-        certificate: 0
-    };
+    let allText = "";
 
-    if (aadhaarRegex.test(text)) scores.aadhaar += 2;
-    if (lower.includes("uidai")) scores.aadhaar++;
-    if (lower.includes("unique identification")) scores.aadhaar++;
+    for (let page = 1; page <= pdf.numPages; page++) {
+        const pdfPage = await pdf.getPage(page);
 
-    if (panRegex.test(text)) scores.pan += 2;
-    if (lower.includes("income tax")) scores.pan++;
+        const viewport = pdfPage.getViewport({ scale: 1.5 });
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
 
-    if (lower.includes("sale deed") || lower.includes("khata") || lower.includes("registration no"))
-        scores.property += 2;
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
 
-    if (lower.includes("certificate") || lower.includes("university") || lower.includes("board"))
-        scores.certificate += 2;
+        await pdfPage.render({ canvasContext: ctx, viewport }).promise;
 
-    let best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
-    if (best[1] === 0) return "unknown";
-    return best[0];
+        const imgData = canvas.toDataURL("image/png");
+        const result = await Tesseract.recognize(imgData, "eng");
+        allText += result.data.text.toLowerCase() + " ";
+    }
+
+    return allText;
+}
+
+/* ===========================================
+   DOCUMENT TYPE CLASSIFIER (Aadhaar / PAN / Cert / Property)
+   =========================================== */
+function classifyDocument(text) {
+    text = text.toLowerCase();
+
+    // Aadhaar
+    if (
+        text.includes("aadhaar") ||
+        text.includes("uidai") ||
+        text.includes("unique identification") ||
+        text.includes("government of india")
+    ) {
+        return "aadhaar";
+    }
+
+    // PAN
+    if (
+        text.includes("income tax department") ||
+        text.includes("permanent account number") ||
+        text.includes("pan") ||
+        text.match(/[a-z]{5}[0-9]{4}[a-z]{1}/)
+    ) {
+        return "pan";
+    }
+
+    // Certificates
+    if (
+        text.includes("certificate") ||
+        text.includes("marksheet") ||
+        text.includes("board") ||
+        text.includes("university") ||
+        text.includes("passed")
+    ) {
+        return "certificate";
+    }
+
+    // Property / Sale Deed
+    if (
+        text.includes("sale deed") ||
+        text.includes("property") ||
+        text.includes("agreement") ||
+        text.includes("land") ||
+        text.includes("buyer") ||
+        text.includes("seller")
+    ) {
+        return "property";
+    }
+
+    return "unknown";
+}
+
+/* ===========================================
+   VERIFY BEFORE UPLOAD
+   =========================================== */
+async function verifyDocumentBeforeUpload(file, expectedType) {
+    alert("Scanning document… please wait");
+
+    const text = await extractText(file);
+    const detectedType = classifyDocument(text);
+
+    console.log("Detected:", detectedType);
+
+    if (detectedType !== expectedType) {
+        alert(`❌ Document mismatch!
+Expected: ${expectedType}
+Detected: ${detectedType}`);
+        return false;
+    }
+
+    alert(`✔ Verified ${expectedType} document`);
+    return true;
 }
 
 'use strict';
@@ -67,7 +135,7 @@ const SUPABASE_ANON_KEY ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJlNmU5ZDY3Mi05MjhiLTRlYWQtOTViMi1hYTRmNGIyODhjNjciLCJlbWFpbCI6InVwYWRoeWF5eWFzaDgyOEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkEXIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiOGJjMzNjNDIyNmRlMTk0NGYzZWQiLCJzY29wZWRLZXlTZWNyZXQiOiI2MmMwMDFmMGMzM2QzMzExYmM4YTY0MjYxNTVjNzA2MTU2Mzg3ZjIzODBhMjM0ZWRmMDU3MDlkNThhNTg4NjBjIiwiZXhwIjoxNzk0NTYzOTY0fQ.TND-ia2X8jI33dibYp68R2Zh64_orOPthVnqtl0qt5w";
+const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJlNmU5ZDY3Mi05MjhiLTRlYWQtOTViMi1hYTRmNGIyODhjNjciLCJlbWFpbCI6InVwYWRoeWF5eWFzaDgyOEBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiOGJjMzNjNDIyNmRlMTk0NGYzZWQiLCJzY29wZWRLZXlTZWNyZXQiOiI2MmMwMDFmMGMzM2QzMzExYmM4YTY0MjYxNTVjNzA2MTU2Mzg3ZjIzODBhMjM0ZWRmMDU3MDlkNThhNTg4NjBjIiwiZXhwIjoxNzk0NTYzOTY0fQ.TND-ia2X8jI33dibYp68R2Zh64_orOPthVnqtl0qt5w";
 
 /* --------------------- STATE -------------------- */
 let currentDocId = null;
@@ -83,144 +151,52 @@ function ensureLoggedInPrompt() {
     openAuthPanel("login");
 }
 
-/* -------------------- DOM READY -------------------- */
 document.addEventListener("DOMContentLoaded", async () => {
-    // Initialize all elements
-    const getStartedBtn = document.getElementById("get-started-btn");
-    const heroSection = document.getElementById("hero-section");
-    const authOverlay = document.getElementById("auth-overlay");
-    const authPanel = document.getElementById("auth-panel");
-    const authTitle = document.getElementById("auth-title");
-    const authClose = document.getElementById("auth-close");
-    const authForm = document.getElementById("auth-form");
     const fileInput = document.getElementById("file-input");
-    const addFileCard = document.getElementById("add-file-card");
+    const getStartedBtn = document.querySelector(".btn-primary");
 
-    // ========== GET STARTED BUTTON ==========
-    if (getStartedBtn) {
-        getStartedBtn.addEventListener("click", async (e) => {
-            e.preventDefault();
-            const user = await getCurrentUser();
-            
-            if (!user) {
-                // Show login panel
-                authOverlay.classList.remove("hidden");
-                authOverlay.classList.add("show");
-                authPanel.classList.remove("hidden");
-                authPanel.classList.add("show");
-                authTitle.textContent = "Login";
-                document.getElementById("confirm-wrapper").style.display = "none";
-                
-                // Update auth switch text
-                document.getElementById("auth-switch").innerHTML =
-                    `Don't have an account? <span id="switch-to-signup" style="cursor: pointer; color: #3B82F6; font-weight: 600;">Sign Up</span>`;
-                
-                // Add listener for switch
-                document.getElementById("switch-to-signup")?.addEventListener("click", (e) => {
-                    e.preventDefault();
-                    openAuthPanel("signup");
-                });
-            } else {
-                // User already logged in - lift curtain
-                heroSection.classList.add("lifted");
-                setTimeout(() => {
-                    document.getElementById("documents").scrollIntoView({ behavior: "smooth" });
-                }, 600);
-            }
-        });
-    }
-
-    // ========== AUTH CLOSE BUTTON ==========
-    if (authClose) {
-        authClose.addEventListener("click", () => {
-            authOverlay.classList.remove("show");
-            authPanel.classList.remove("show");
-            setTimeout(() => {
-                authOverlay.classList.add("hidden");
-                authPanel.classList.add("hidden");
-            }, 300);
-        });
-    }
-
-    // ========== AUTH FORM SUBMISSION ==========
-    if (authForm) {
-        authForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const email = document.getElementById("auth-email").value.trim();
-            const password = document.getElementById("auth-password").value.trim();
-            const isSignup = authTitle.textContent === "Sign Up";
-
-            if (!email.includes("@")) {
-                alert("Enter a valid email");
-                return;
-            }
-
-            if (isSignup) {
-                const passwordConfirm = document.getElementById("auth-password-confirm").value.trim();
-                if (password !== passwordConfirm) {
-                    alert("Passwords do not match!");
-                    return;
-                }
-                await signupUser(email, password);
-            } else {
-                await loginUser(email, password);
-            }
-
-            // Clear form
-            authForm.reset();
-
-            // Close panel and lift curtain
-            authOverlay.classList.remove("show");
-            authPanel.classList.remove("show");
-            setTimeout(() => {
-                authOverlay.classList.add("hidden");
-                authPanel.classList.add("hidden");
-                heroSection.classList.add("lifted");
-                setTimeout(() => {
-                    document.getElementById("documents").scrollIntoView({ behavior: "smooth" });
-                }, 600);
-            }, 300);
-        });
-    }
-
-    // ========== ADD FILE CARD ==========
-    if (addFileCard) {
-        addFileCard.addEventListener("click", async () => {
-            const user = await getCurrentUser();
-            if (!user) {
-                ensureLoggedInPrompt();
-            } else {
-                fileInput.click();
-            }
-        });
-    }
-
-    // ========== FILE INPUT ==========
     if (fileInput) {
-        fileInput.addEventListener("change", (e) => {
-            handleFiles(e.target.files);
+        fileInput.addEventListener("change", async (e) => {
+
+            const file = e.target.files[0];
+
+            // --------------- VERIFY BEFORE UPLOAD ----------------
+            if (currentDocId == 1) { 
+                if (!await verifyDocumentBeforeUpload(file, "aadhaar")) return;
+            }
+            if (currentDocId == 2) { 
+                if (!await verifyDocumentBeforeUpload(file, "pan")) return;
+            }
+            if (currentDocId == 3) { 
+                if (!await verifyDocumentBeforeUpload(file, "certificate")) return;
+            }
+            if (currentDocId == 4) { 
+                if (!await verifyDocumentBeforeUpload(file, "property")) return;
+            }
+
+            uploadToIPFS(file, currentDocId);
             fileInput.value = "";
         });
     }
 
-    // ========== DOCUMENT CARD CLICK ==========
+    if (getStartedBtn) {
+        getStartedBtn.addEventListener("click", () => {
+            document.querySelector(".documents")?.scrollIntoView({ behavior: "smooth" });
+        });
+    }
+
     document.addEventListener("click", async (e) => {
         const card = e.target.closest(".document-card[data-doc-id]");
         if (!card) return;
 
-        const docId = card.getAttribute("data-doc-id");
         const user = await getCurrentUser();
         if (!user) return ensureLoggedInPrompt();
 
-        if (sessionCache[docId]) {
-            if (!confirm("Replace existing file?")) return;
-        }
-
-        currentDocId = docId;
-        fileInput.click();
+        currentDocId = card.getAttribute("data-doc-id");
+        document.getElementById("file-input").click();
     });
 
-    // ========== LOAD INITIAL UI ==========
+    // Init UI
     for (const card of document.querySelectorAll(".document-card[data-doc-id]")) {
         await updateDocumentCard(card.getAttribute("data-doc-id"));
     }
@@ -278,53 +254,12 @@ async function refreshAuthUI() {
 
 /* -------------------- FILE HANDLING -------------------- */
 
-function handleFiles(files) {
-    if (!files.length) return;
-    if (!currentDocId) return alert("Select a section first.");
-    uploadToIPFS(files[0], currentDocId);
-    currentDocId = null;
-}
-
 async function uploadToIPFS(file, docId) {
     const user = await getCurrentUser();
     if (!user) return ensureLoggedInPrompt();
 
     const sectionId = parseInt(docId);
 
-    // ---- Malware scan (block if suspicious) ----
-    const malwareWarning = await basicMalwareScan(file);
-    if (malwareWarning) {
-        alert("Upload blocked: " + malwareWarning);
-        return;
-    }
-
-    // ---- Document type detection (block if mismatch) ----
-    const text = await extractTextFromFile(file);
-    const detected = detectDocumentType(text);
-
-    // Map section numbers to expected types
-    const sectionMap = {
-        1: "aadhaar",
-        2: "pan",
-        3: "property",
-        4: "certificate"
-    };
-
-    const expected = sectionMap[sectionId];
-
-    // If document type is unknown → BLOCK upload
-    if (detected === "unknown") {
-        alert("❌ This file does not look like a valid Aadhaar/PAN/Property/Certificate document.\nUpload blocked.");
-        return;
-    }
-
-    // If detected type does NOT match the section → BLOCK upload
-    if (expected && detected !== expected) {
-        alert(`❌ Wrong document type uploaded!\n\nYou selected: ${expected.toUpperCase()}\nBut this file looks like: ${detected.toUpperCase()}\n\nUpload BLOCKED.`);
-        return;
-    }
-
-    // Upload to Pinata
     const form = new FormData();
     form.append("file", file);
     form.append("pinataMetadata",
@@ -343,7 +278,6 @@ async function uploadToIPFS(file, docId) {
     const cid = data.IpfsHash;
     const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
 
-    // Save to Supabase
     const { data: row, error } = await supa
         .from("documents")
         .insert([{ user_id: user.id, section_id: sectionId, name: file.name, cid, ipfs_url: url }])
@@ -390,47 +324,63 @@ async function updateDocumentCard(docId) {
     label.textContent = doc ? `${doc.name} (IPFS)` : "No file uploaded";
 }
 
+// ...existing code...
+
 async function updateUploadedDocumentsList() {
-    const container = document.getElementById("uploaded-documents-list");
     const user = await getCurrentUser();
+    if (!user) return;
 
-    if (!user) {
-        container.innerHTML = "<p>Login to see your documents.</p>";
-        return;
-    }
-
-    const { data, error } = await supa
+    const list = document.getElementById("uploaded-documents-list");
+    const { data: docs, error } = await supa
         .from("documents")
         .select("*")
-        .eq("user_id", user.id)
-        .order("uploaded_at", { ascending: false });
+        .eq("user_id", user.id);
 
-    if (error) {
-        container.innerHTML = "<p>Error loading documents</p>";
+    if (error || !docs?.length) {
+        list.innerHTML = "<p>No documents uploaded yet.</p>";
         return;
     }
 
-    if (!data.length) {
-        container.innerHTML = "<p>No documents uploaded yet.</p>";
-        return;
-    }
-
-    container.innerHTML = "";
-    for (const item of data) {
-        const row = document.createElement("div");
-        row.classList.add("doc-row");
-
-        row.innerHTML = `
-            <div class="doc-info">${escapeHtml(item.name)}</div>
-            <div class="doc-actions">
-                <a class="view-btn" href="${item.ipfs_url}" target="_blank">View</a>
-                <a class="download-btn" href="${item.ipfs_url}" download="${item.name}">Download</a>
-                <button class="delete-btn" onclick="deleteDocumentDB('${item.id}','${item.section_id}')">Delete</button>
+    list.innerHTML = docs.map(doc => `
+        <div>
+            <div>
+                <strong>${doc.name}</strong>
+                <p>CID: ${doc.cid}</p>
             </div>
-        `;
-        container.appendChild(row);
+            <div class="document-actions">
+                <button class="btn-view" onclick="viewDocument('${doc.id}', '${doc.ipfs_url}')">View</button>
+                <button class="btn-download" onclick="downloadDocument('${doc.name}', '${doc.ipfs_url}')">Download</button>
+                <button class="btn-delete" onclick="deleteDocument('${doc.id}')">Delete</button>
+            </div>
+        </div>
+    `).join("");
+}
+
+function viewDocument(docId, ipfsUrl) {
+    window.open(ipfsUrl, '_blank');
+}
+
+function downloadDocument(filename, ipfsUrl) {
+    const a = document.createElement('a');
+    a.href = ipfsUrl;
+    a.download = filename;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+async function deleteDocument(docId) {
+    if (!confirm("Delete this document?")) return;
+    const { error } = await supa.from("documents").delete().eq("id", docId);
+    if (error) alert("Error: " + error.message);
+    else {
+        alert("✅ Deleted");
+        await updateUploadedDocumentsList();
     }
 }
+
+// ...existing code...
 
 /* -------------------- DELETE -------------------- */
 
@@ -479,67 +429,7 @@ function openAuthPanel(mode) {
         document.getElementById("switch-to-login")?.addEventListener("click", () => openAuthPanel("login"));
     }, 10);
 }
-async function basicMalwareScan(file) {
-    const filename = file.name.toLowerCase();
 
-    // RULE 1: Double extension (super common malware trick)
-    if (filename.match(/\.(pdf|jpg|png|docx)\.(exe|js|sh|bat)$/)) {
-        return "Suspicious double-extension file.";
-    }
-
-    // RULE 2: Read file as text or binary
-    const buffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
-
-    // RULE 3: EXE signatures
-    if (text.includes("This program cannot be run in DOS mode") || 
-        (bytes[0] === 0x4D && bytes[1] === 0x5A)) {
-        return "Executable content detected inside the file.";
-    }
-
-    // RULE 4: <script> tag detection
-    const scriptPatterns = [
-        "<script",
-        "javascript:",
-        "onerror=",
-        "eval(",
-        "function(",
-        "atob(",
-        "iframe"
-    ];
-    for (const pattern of scriptPatterns) {
-        if (text.toLowerCase().includes(pattern)) {
-            return `Script code detected (${pattern}).`;
-        }
-    }
-
-    // RULE 5: PDF JavaScript detection
-    if (filename.endsWith(".pdf")) {
-        const pdfJSMarkers = ["/JS", "/JavaScript", "/OpenAction", "/AA"];
-        for (const m of pdfJSMarkers) {
-            if (text.includes(m)) {
-                return "PDF contains JavaScript actions (dangerous).";
-            }
-        }
-    }
-
-    // RULE 6: DOCX macro detection (file is actually a ZIP)
-    if (filename.endsWith(".docx")) {
-        // DOCX is a ZIP → look for vbaProject.bin signature
-        const zipText = text.toLowerCase();
-        if (zipText.includes("vbaproject.bin")) {
-            return "Document contains macros (dangerous).";
-        }
-    }
-
-    // RULE 7: Suspicious long Base64 payload
-    if (text.match(/[A-Za-z0-9+/]{400,}={0,2}/)) {
-        return "Long encoded payload detected (suspicious).";
-    }
-
-    return null; // safe
-}
 function closeAuthPanel() {
     authOverlay.classList.remove("show");
     authPanel.classList.remove("show");
@@ -581,225 +471,4 @@ function escapeHtml(str = "") {
     return String(str)
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
-}
-
-/* -------------------- GUIDED FLOW -------------------- */
-function liftCurtainAndGuide() {
-    const heroSection = document.getElementById("hero-section");
-    const header = document.querySelector(".header");
-    
-    // Lift the curtain
-    heroSection.classList.add("lifted");
-    header.style.display = "block";
-    
-    // Show guided tour
-    setTimeout(() => {
-        showGuidedTour();
-    }, 600);
-}
-
-function showGuidedTour() {
-    // Create tour overlay
-    const tourOverlay = document.createElement("div");
-    tourOverlay.id = "tour-overlay";
-    tourOverlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(15, 23, 42, 0.7);
-        z-index: 900;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    `;
-
-    const tourBox = document.createElement("div");
-    tourBox.style.cssText = `
-        background: white;
-        padding: 40px;
-        border-radius: 12px;
-        max-width: 500px;
-        text-align: center;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        animation: slideUp 0.5s ease-out;
-    `;
-
-    tourBox.innerHTML = `
-        <h2 style="color: #0F172A; margin-bottom: 20px; font-size: 28px;">Welcome to DocVault! 🎉</h2>
-        <p style="color: #666; margin-bottom: 30px; line-height: 1.8;">
-            Let's take a quick tour of your secure document storage.
-        </p>
-        <div style="display: flex; gap: 12px; justify-content: center;">
-            <button id="tour-home" style="
-                background-color: #3B82F6;
-                color: white;
-                border: none;
-                padding: 12px 30px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-weight: 600;
-                transition: all 0.3s ease;
-            ">Start Tour</button>
-            <button id="tour-skip" style="
-                background-color: #E2E8F0;
-                color: #333;
-                border: none;
-                padding: 12px 30px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-weight: 600;
-                transition: all 0.3s ease;
-            ">Skip</button>
-        </div>
-    `;
-
-    tourOverlay.appendChild(tourBox);
-    document.body.appendChild(tourOverlay);
-
-    document.getElementById("tour-home").addEventListener("click", () => {
-        tourOverlay.remove();
-        guideTourStep(1);
-    });
-
-    document.getElementById("tour-skip").addEventListener("click", () => {
-        tourOverlay.remove();
-    });
-}
-
-function guideTourStep(step) {
-    const tourOverlay = document.createElement("div");
-    tourOverlay.id = "step-overlay";
-    tourOverlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(15, 23, 42, 0.7);
-        z-index: 900;
-        pointer-events: none;
-    `;
-    document.body.appendChild(tourOverlay);
-
-    const steps = [
-        {
-            title: "📍 You're Home!",
-            description: "This is your dashboard where you'll manage all your documents.",
-            target: "#documents",
-            nextText: "Go to Documents →"
-        },
-        {
-            title: "📂 Your Documents",
-            description: "Upload and organize your important documents here. Each section is for a specific document type.",
-            target: "#documents h2",
-            nextText: "Learn More →"
-        },
-        {
-            title: "ℹ️ About DocVault",
-            description: "Discover more about our mission and how we protect your documents securely.",
-            target: "#about",
-            nextText: "View About ↓"
-        },
-        {
-            title: "✅ All Set!",
-            description: "You're ready to start uploading and managing your documents securely.",
-            target: null,
-            nextText: "Get Started"
-        }
-    ];
-
-    if (step > steps.length) {
-        tourOverlay.remove();
-        return;
-    }
-
-    const currentStep = steps[step - 1];
-    const targetElement = currentStep.target ? document.querySelector(currentStep.target) : null;
-
-    const tourBox = document.createElement("div");
-    tourBox.style.cssText = `
-        position: fixed;
-        background: white;
-        padding: 30px;
-        border-radius: 12px;
-        max-width: 400px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        z-index: 901;
-        animation: slideUp 0.5s ease-out;
-    `;
-
-    if (targetElement) {
-        const rect = targetElement.getBoundingClientRect();
-        tourBox.style.top = (rect.bottom + 20) + "px";
-        tourBox.style.left = (rect.left) + "px";
-
-        // Highlight target
-        const highlightBox = document.createElement("div");
-        highlightBox.style.cssText = `
-            position: fixed;
-            top: ${rect.top - 10}px;
-            left: ${rect.left - 10}px;
-            width: ${rect.width + 20}px;
-            height: ${rect.height + 20}px;
-            border: 2px solid #3B82F6;
-            border-radius: 8px;
-            box-shadow: 0 0 0 2000px rgba(15, 23, 42, 0.5);
-            z-index: 899;
-            pointer-events: none;
-        `;
-        document.body.appendChild(highlightBox);
-    } else {
-        tourBox.style.top = "50%";
-        tourBox.style.left = "50%";
-        tourBox.style.transform = "translate(-50%, -50%)";
-    }
-
-    tourBox.innerHTML = `
-        <h3 style="color: #0F172A; margin-bottom: 12px; font-size: 20px;">${currentStep.title}</h3>
-        <p style="color: #666; margin-bottom: 24px; line-height: 1.6;">${currentStep.description}</p>
-        <div style="display: flex; gap: 12px;">
-            <button id="tour-next" style="
-                background-color: #3B82F6;
-                color: white;
-                border: none;
-                padding: 10px 24px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-weight: 600;
-                flex: 1;
-            ">${currentStep.nextText}</button>
-            <button id="tour-skip-step" style="
-                background-color: #E2E8F0;
-                color: #333;
-                border: none;
-                padding: 10px 24px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-weight: 600;
-            ">Skip</button>
-        </div>
-    `;
-
-    document.body.appendChild(tourBox);
-
-    document.getElementById("tour-next").addEventListener("click", () => {
-        tourOverlay.remove();
-        tourBox.remove();
-        document.querySelectorAll("[id^='step-overlay'], div[style*='position: fixed'][style*='border: 2px solid']").forEach(el => el.remove());
-
-        if (step < steps.length) {
-            if (step === 1) document.getElementById("documents").scrollIntoView({ behavior: "smooth" });
-            if (step === 2) document.getElementById("about").scrollIntoView({ behavior: "smooth" });
-        }
-
-        guideTourStep(step + 1);
-    });
-
-    document.getElementById("tour-skip-step").addEventListener("click", () => {
-        tourOverlay.remove();
-        tourBox.remove();
-        document.querySelectorAll("[id^='step-overlay'], div[style*='position: fixed'][style*='border: 2px solid']").forEach(el => el.remove());
-    });
 }
