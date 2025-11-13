@@ -38,53 +38,55 @@
     <section class="documents" id="documents">
         <div class="container">
             <h2>Your Documents</h2>
+            
+            <!-- Upload Card -->
             <div class="document-grid">
+                <div class="document-card upload-card">
+                    <div class="upload-area-inline">
+                        <input type="file" id="file-input" multiple accept=".pdf,.doc,.docx,.jpg,.png" style="display: none;">
+                        <label for="file-input" class="upload-label">
+                            <div class="doc-icon">📤</div>
+                            <h3>Upload Document</h3>
+                            <p>Click to browse or drag files</p>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Document Card 1 -->
-                <div class="document-card">
+                <div class="document-card" data-doc-id="1">
                     <div class="doc-icon">📄</div>
                     <h3>Aadhaar Card</h3>
-                    <p>Last updated: Nov 10, 2025</p>
-                    <button class="btn-secondary">View</button>
+                    <p class="doc-status">No file uploaded</p>
+                    <button class="btn-secondary view-btn" style="display: none;">View</button>
                     <button class="btn-delete">Delete</button>
                 </div>
 
                 <!-- Document Card 2 -->
-                <div class="document-card">
+                <div class="document-card" data-doc-id="2">
                     <div class="doc-icon">🪪</div>
                     <h3>Pan Card</h3>
-                    <p>Last updated: Nov 05, 2025</p>
-                    <button class="btn-secondary">View</button>
+                    <p class="doc-status">No file uploaded</p>
+                    <button class="btn-secondary view-btn" style="display: none;">View</button>
                     <button class="btn-delete">Delete</button>
                 </div>
 
                 <!-- Document Card 3 -->
-                <div class="document-card">
+                <div class="document-card" data-doc-id="3">
                     <div class="doc-icon">🏠</div>
                     <h3>Property Deed</h3>
-                    <p>Last updated: Oct 28, 2025</p>
-                    <button class="btn-secondary">View</button>
+                    <p class="doc-status">No file uploaded</p>
+                    <button class="btn-secondary view-btn" style="display: none;">View</button>
                     <button class="btn-delete">Delete</button>
                 </div>
 
                 <!-- Document Card 4 -->
-                <div class="document-card">
+                <div class="document-card" data-doc-id="4">
                     <div class="doc-icon">🎓</div>
                     <h3>Certificates</h3>
-                    <p>Last updated: Sep 15, 2025</p>
-                    <button class="btn-secondary">View</button>
+                    <p class="doc-status">No file uploaded</p>
+                    <button class="btn-secondary view-btn" style="display: none;">View</button>
                     <button class="btn-delete">Delete</button>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Upload Section -->
-    <section class="upload-section">
-        <div class="container">
-            <h2>Upload New Document</h2>
-            <div class="upload-area">
-                <input type="file" id="file-input" multiple>
-                <p>Drag and drop files here or click to browse</p>
             </div>
         </div>
     </section>
