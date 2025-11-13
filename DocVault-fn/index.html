@@ -39,26 +39,14 @@
         <div class="container">
             <h2>Your Documents</h2>
             
-            <!-- Upload Card -->
             <div class="document-grid">
-                <div class="document-card upload-card">
-                    <div class="upload-area-inline">
-                        <input type="file" id="file-input" multiple accept=".pdf,.doc,.docx,.jpg,.png" style="display: none;">
-                        <label for="file-input" class="upload-label">
-                            <div class="doc-icon">📤</div>
-                            <h3>Upload Document</h3>
-                            <p>Click to browse or drag files</p>
-                        </label>
-                    </div>
-                </div>
+                <!-- Removed the general upload card per request -->
 
                 <!-- Document Card 1 -->
                 <div class="document-card" data-doc-id="1">
                     <div class="doc-icon">📄</div>
                     <h3>Aadhaar Card</h3>
                     <p class="doc-status">No file uploaded</p>
-                    <button class="btn-secondary view-btn" style="display: none;">View</button>
-                    <button class="btn-delete">Delete</button>
                 </div>
 
                 <!-- Document Card 2 -->
@@ -66,8 +54,6 @@
                     <div class="doc-icon">🪪</div>
                     <h3>Pan Card</h3>
                     <p class="doc-status">No file uploaded</p>
-                    <button class="btn-secondary view-btn" style="display: none;">View</button>
-                    <button class="btn-delete">Delete</button>
                 </div>
 
                 <!-- Document Card 3 -->
@@ -75,8 +61,6 @@
                     <div class="doc-icon">🏠</div>
                     <h3>Property Deed</h3>
                     <p class="doc-status">No file uploaded</p>
-                    <button class="btn-secondary view-btn" style="display: none;">View</button>
-                    <button class="btn-delete">Delete</button>
                 </div>
 
                 <!-- Document Card 4 -->
@@ -84,8 +68,25 @@
                     <div class="doc-icon">🎓</div>
                     <h3>Certificates</h3>
                     <p class="doc-status">No file uploaded</p>
-                    <button class="btn-secondary view-btn" style="display: none;">View</button>
-                    <button class="btn-delete">Delete</button>
+                </div>
+            </div>
+
+            <!-- Hidden file input used only for per-section uploads -->
+            <input type="file" id="file-input" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none">
+
+            <!-- Uploaded Documents - centralized list -->
+            <div class="uploaded-section" style="margin-top:24px; display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <svg id="uploaded-docs-logo" width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img">
+                        <rect x="3" y="3" width="14" height="18" rx="2" fill="#007bff"/>
+                        <path d="M7 7h8v2H7zM7 11h8v2H7zM7 15h5v2H7z" fill="#fff"/>
+                        <path d="M21 7v10a2 2 0 0 1-2 2h-2" stroke="#007bff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                        <path d="M18 3v4" stroke="#007bff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <h3 style="margin:0;">Uploaded Documents</h3>
+                </div>
+                <div id="uploaded-documents-list" class="uploaded-documents-list" style="margin-top:8px;">
+                    <p class="empty-note" style="color:#666;">No uploaded documents yet.</p>
                 </div>
             </div>
         </div>
