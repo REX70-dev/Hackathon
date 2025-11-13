@@ -1,3 +1,64 @@
+/* ==========================
+   DOCUMENT TYPE DETECTOR
+   ========================== */
+
+async function extractTextFromFile(file) {
+    const type = file.type;
+
+    // ---------- PDF ----------
+    if (type === "application/pdf") {
+        const array = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: array }).promise;
+        let text = "";
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            text += content.items.map(s => s.str).join(" ");
+        }
+        return text;
+    }
+
+    // ---------- IMAGE (OCR) ----------
+    if (type.startsWith("image/")) {
+        const result = await Tesseract.recognize(file, "eng");
+        return result.data.text || "";
+    }
+
+    return "";
+}
+
+function detectDocumentType(text) {
+    const lower = text.toLowerCase();
+
+    const aadhaarRegex = /\b\d{4}\s?\d{4}\s?\d{4}\b/;
+    const panRegex = /[A-Z]{5}[0-9]{4}[A-Z]/i;
+
+    let scores = {
+        aadhaar: 0,
+        pan: 0,
+        property: 0,
+        certificate: 0
+    };
+
+    if (aadhaarRegex.test(text)) scores.aadhaar += 2;
+    if (lower.includes("uidai")) scores.aadhaar++;
+    if (lower.includes("unique identification")) scores.aadhaar++;
+
+    if (panRegex.test(text)) scores.pan += 2;
+    if (lower.includes("income tax")) scores.pan++;
+
+    if (lower.includes("sale deed") || lower.includes("khata") || lower.includes("registration no"))
+        scores.property += 2;
+
+    if (lower.includes("certificate") || lower.includes("university") || lower.includes("board"))
+        scores.certificate += 2;
+
+    let best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+    if (best[1] === 0) return "unknown";
+    return best[0];
+}
+
 'use strict';
 
 /* ------------------ CONFIG ------------------ */
@@ -127,6 +188,39 @@ async function uploadToIPFS(file, docId) {
     if (!user) return ensureLoggedInPrompt();
 
     const sectionId = parseInt(docId);
+
+    // ---- Malware scan (block if suspicious) ----
+    const malwareWarning = await basicMalwareScan(file);
+    if (malwareWarning) {
+        alert("Upload blocked: " + malwareWarning);
+        return;
+    }
+
+    // ---- Document type detection (block if mismatch) ----
+    const text = await extractTextFromFile(file);
+    const detected = detectDocumentType(text);
+
+    // Map section numbers to expected types
+    const sectionMap = {
+        1: "aadhaar",
+        2: "pan",
+        3: "property",
+        4: "certificate"
+    };
+
+    const expected = sectionMap[sectionId];
+
+    // If document type is unknown → BLOCK upload
+    if (detected === "unknown") {
+        alert("❌ This file does not look like a valid Aadhaar/PAN/Property/Certificate document.\nUpload blocked.");
+        return;
+    }
+
+    // If detected type does NOT match the section → BLOCK upload
+    if (expected && detected !== expected) {
+        alert(`❌ Wrong document type uploaded!\n\nYou selected: ${expected.toUpperCase()}\nBut this file looks like: ${detected.toUpperCase()}\n\nUpload BLOCKED.`);
+        return;
+    }
 
     // Upload to Pinata
     const form = new FormData();
@@ -283,7 +377,67 @@ function openAuthPanel(mode) {
         document.getElementById("switch-to-login")?.addEventListener("click", () => openAuthPanel("login"));
     }, 10);
 }
+async function basicMalwareScan(file) {
+    const filename = file.name.toLowerCase();
 
+    // RULE 1: Double extension (super common malware trick)
+    if (filename.match(/\.(pdf|jpg|png|docx)\.(exe|js|sh|bat)$/)) {
+        return "Suspicious double-extension file.";
+    }
+
+    // RULE 2: Read file as text or binary
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+
+    // RULE 3: EXE signatures
+    if (text.includes("This program cannot be run in DOS mode") || 
+        (bytes[0] === 0x4D && bytes[1] === 0x5A)) {
+        return "Executable content detected inside the file.";
+    }
+
+    // RULE 4: <script> tag detection
+    const scriptPatterns = [
+        "<script",
+        "javascript:",
+        "onerror=",
+        "eval(",
+        "function(",
+        "atob(",
+        "iframe"
+    ];
+    for (const pattern of scriptPatterns) {
+        if (text.toLowerCase().includes(pattern)) {
+            return `Script code detected (${pattern}).`;
+        }
+    }
+
+    // RULE 5: PDF JavaScript detection
+    if (filename.endsWith(".pdf")) {
+        const pdfJSMarkers = ["/JS", "/JavaScript", "/OpenAction", "/AA"];
+        for (const m of pdfJSMarkers) {
+            if (text.includes(m)) {
+                return "PDF contains JavaScript actions (dangerous).";
+            }
+        }
+    }
+
+    // RULE 6: DOCX macro detection (file is actually a ZIP)
+    if (filename.endsWith(".docx")) {
+        // DOCX is a ZIP → look for vbaProject.bin signature
+        const zipText = text.toLowerCase();
+        if (zipText.includes("vbaproject.bin")) {
+            return "Document contains macros (dangerous).";
+        }
+    }
+
+    // RULE 7: Suspicious long Base64 payload
+    if (text.match(/[A-Za-z0-9+/]{400,}={0,2}/)) {
+        return "Long encoded payload detected (suspicious).";
+    }
+
+    return null; // safe
+}
 function closeAuthPanel() {
     authOverlay.classList.remove("show");
     authPanel.classList.remove("show");
