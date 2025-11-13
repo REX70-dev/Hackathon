@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DocVault - Digital Document Locker</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 </head>
 <body>
     <!-- Header -->
@@ -104,6 +106,38 @@
         </div>
     </footer>
 
-    <script src="script.js"></script>
+    
+ <!-- Slide-In Auth Panel -->
+<div id="auth-overlay" class="auth-overlay hidden"></div>
+
+<div id="auth-panel" class="auth-panel hidden">
+    <div class="auth-header">
+        <h2 id="auth-title">Login</h2>
+        <button id="auth-close" class="auth-close">×</button>
+    </div>
+
+    <form id="auth-form" class="auth-form">
+        <label>Email</label>
+        <input type="email" id="auth-email" required>
+
+        <label>Password</label>
+        <input type="password" id="auth-password" required>
+
+        <div id="confirm-wrapper" style="display:none;">
+            <label>Confirm Password</label>
+            <input type="password" id="auth-password-confirm">
+        </div>
+
+        <button type="submit" id="auth-submit" class="auth-submit-btn">Continue</button>
+
+        <p id="auth-switch" class="auth-switch-text">
+            Don’t have an account? <span id="switch-to-signup">Sign Up</span>
+        </p>
+    </form>
+</div>
+
+<!-- KEEP ONLY THIS ONE -->
+<script src="script.js"></script>
+
 </body>
 </html>
