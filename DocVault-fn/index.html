@@ -27,12 +27,41 @@
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero">
+    <!-- Hero Section - Full Screen Curtain -->
+    <section class="hero" id="hero-section">
         <div class="hero-content">
             <h1>Secure Digital Document Storage</h1>
             <p>Store, organize, and access your documents anytime, anywhere</p>
-            <button class="btn-primary">Get Started</button>
+            <button class="btn-primary" id="get-started-btn">Get Started</button>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about" id="about" style="padding: 80px 20px; background-color: #f9f9f9;">
+        <div class="container" style="max-width: 800px; margin: 0 auto;">
+            <h2 style="font-size: 36px; font-weight: 700; margin-bottom: 30px; color: #000; text-align: center;">About DocVault</h2>
+            
+            <div style="background-color: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                <p style="font-size: 16px; line-height: 1.8; color: #333; margin-bottom: 20px;">
+                    <strong>DocVault</strong> is a secure, cloud-based digital document locker designed to help you organize and store your important documents safely. Whether it's your Aadhaar card, PAN card, property deeds, or certificates, DocVault ensures your sensitive information is always accessible and protected.
+                </p>
+
+                <h3 style="font-size: 20px; font-weight: 600; color: #0066cc; margin-bottom: 15px;">Key Features:</h3>
+                <ul style="font-size: 16px; line-height: 1.8; color: #333; margin-bottom: 20px; padding-left: 20px;">
+                    <li>🔒 <strong>Secure Storage</strong> - Your documents are encrypted and stored safely</li>
+                    <li>🚀 <strong>Easy Access</strong> - Retrieve your documents anytime, anywhere</li>
+                    <li>📄 <strong>Smart Recognition</strong> - AI-powered document type detection</li>
+                    <li>🌐 <strong>IPFS Integration</strong> - Decentralized storage for added security</li>
+                    <li>📱 <strong>Mobile Friendly</strong> - Access your vault on any device</li>
+                </ul>
+
+                <hr style="border: 1px solid #e0e0e0; margin: 30px 0;">
+
+                <h3 style="font-size: 18px; font-weight: 600; color: #0066cc; margin-bottom: 10px;">Created by Team Rex</h3>
+                <p style="font-size: 16px; line-height: 1.8; color: #333;">
+                    DocVault was built by <strong>Team Rex</strong> for a hackathon challenge. We are passionate about creating innovative solutions that make document management simple, secure, and accessible to everyone. Our mission is to revolutionize how people store and manage their important documents in the digital age.
+                </p>
+            </div>
         </div>
     </section>
 
@@ -70,6 +99,13 @@
                     <div class="doc-icon">🎓</div>
                     <h3>Certificates</h3>
                     <p class="doc-status">No file uploaded</p>
+                </div>
+
+                <!-- Add File Card (Dotted Border) -->
+                <div class="document-card add-file-card" id="add-file-card">
+                    <div class="add-file-icon">+</div>
+                    <h3>Add Other Files</h3>
+                    <p class="doc-status">Upload any other documents</p>
                 </div>
             </div>
 
@@ -144,8 +180,5 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
 <script src="script.js"></script>
-
-<script src="script.js"></script>
-
 </body>
 </html>
